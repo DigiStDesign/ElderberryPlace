@@ -1,0 +1,5 @@
+# Ignore environment config
+config/.env.php
+# Ignore system files
+.DS_Store
+Thumbs.db
