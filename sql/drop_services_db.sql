@@ -1,8 +1,5 @@
 -- drop_services_db.sql
-SET FOREIGN_KEY_CHECKS = 0; -- call the cops
+SET FOREIGN_KEY_CHECKS = 0;
 
-DROP TABLE IF EXISTS staff_assignments;
-DROP TABLE IF EXISTS services;
-DROP TABLE IF EXISTS categories;
-
+DROP TABLE *;
 SET FOREIGN_KEY_CHECKS = 1;

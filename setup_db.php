@@ -1,15 +1,15 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/layout.php';
+
 
 $messages = [];
 $sqlFiles = [
-    'staff' => 'sql/init_staff_db.sql',
+# This can either work with an array of individual scripts, or one monolithic init script.
+#    'staff' => 'sql/init_staff_db.sql',
 #    'assignments' => 'sql/init_staff_assignments_db.sql',
-    'services' => 'sql/init_services_db.sql',
-#    'categories' => 'sql/init_categories_db.sql',
-
-    'drop_services' => 'sql/drop_services_db.sql'
+    'init' => 'sql/init_db.sql',
 ];
 
 if (isset($_GET['run']) && isset($sqlFiles[$_GET['run']])) {
@@ -45,51 +45,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['drop_services'])) {
         }
     }
 }
+
+
+
+renderHeader("Database Setup");
 ?>
 
-<!DOCTYPE html>
-<html>
+<main>
+    <section style="padding: 2em;">
+        <h2>Database Setup</h2>
+        <p>Click a button below to run a SQL setup script:</p>
 
-<head>
-    <title>Setup Database</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 2em;
-        }
+        <form method="get" style="margin-bottom: 1em;">
+            <button type="submit" name="run" value="init">Run: Init DB</button>
+        </form>
 
-        button {
-            padding: 10px 20px;
-            margin: 5px;
-        }
+        <!-- Optional drop form -->
+        <!--
+        <h3>Drop DB</h3>
+        <form method="post">
+            <button type="submit" name="drop_services">Drop Service-Related Tables</button>
+        </form>
+        -->
 
-        .msg {
-            margin-top: 1em;
-            padding: 10px;
-            background: #f4f4f4;
-            border-left: 5px solid #ccc;
-        }
-    </style>
-</head>
+        <?php renderMessages($messages); ?>
+    </section>
+</main>
 
-<body>
-    <h1>Database Setup</h1>
-    <p>Click a button below to run a SQL setup script:</p>
-
-    <form method="get">
-        <button type="submit" name="run" value="staff">Run: Staff Table</button>
-        <button type="submit" name="run" value="services">Run: Services Table</button>
-    <!--    <button type="submit" name="run" value="assignments">Run: Staff Assignments Table</button>
-        <button type="submit" name="run" value="categories">Run: Categories Table</button>
-    -->
-    </form>
-
-    <h3>Drop DB</h3>
-    <form method="post">
-        <button type="submit" name="drop_services">Drop Service-Related Tables</button>
-    </form>
-
-    <?php renderMessages($messages); ?>
-</body>
-
-</html>
+<?php renderFooter(); ?>

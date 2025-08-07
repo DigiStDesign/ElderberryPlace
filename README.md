@@ -4,6 +4,28 @@ This project is part of **ICT30017** at Swinburne, TP2 2025. It provides a simpl
 ---
 **Mercury is running PHP 5.4.16**
 ---
+## 📦 Getting Started (Local Setup)
+
+1. **Install Laragon** to your local machine.
+
+2. **Download PHP 5.4.16** from https://windows.php.net/downloads/releases/archives/
+
+3. **Download MySQL 5.7.44** from https://downloads.mysql.com/archives/community/
+
+4. Extract both zips to respective folder, e.g. C:\laragon\bin\php\
+
+5. Open the settings menu (gear icon) inside Laragon and go to **Services & Ports tab**
+
+6. Deselect Apache, select nginx
+
+7. Right click anywhere on main window and change MySQL/PHP versions to the ones downloaded, above
+
+8. From the MySQL menu click "create database" --> "s{{STUDENT_ID}}_db"
+
+9. **Clone the repository** to Laragon www folder, e.g. C:\Laragon\www\ElderberryPlace
+
+10 **Visit localhost:8080\ElderberryPlace\setup_db.php**
+---
 
 ## 📦 Getting Started (Mercury Setup)
 

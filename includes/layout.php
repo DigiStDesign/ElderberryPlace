@@ -25,6 +25,7 @@ function renderNav()
     echo '<a href="index.php"' . ($current === "index.php" ? ' class="active"' : '') . '>Home</a>';
     echo '<a href="setup_db.php"' . ($current === "setup_db.php" ? ' class="active"' : '') . '>DB Setup</a>';
     echo '<a href="staff.php"' . ($current === "staff.php" ? ' class="active"' : '') . '>Staff</a>';
+    echo '<a href="residents.php"' . ($current === "residents.php" ? ' class="active"' : '') . '>Residents</a>';
     echo '<a href="services.php"' . ($current === "services.php" ? ' class="active"' : '') . '>Services</a>';
     echo '<a href="add_service.php"' . ($current === "add_service.php" ? ' class="active"' : '') . '>Add Service</a>';
     echo '<a href="manage_categories.php"' . ($current === "manage_categories.php" ? ' class="active"' : '') . '>Manage Service Categories</a>';
