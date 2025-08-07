@@ -64,16 +64,6 @@ renderHeader("Add New Service");
             </select>
         </label><br><br>
 
-        <label>Assigned Staff:<br>
-            <select name="assigned_staff[]" multiple size="5">
-                <?php
-                $staffList = $pdo->query("SELECT id, name FROM staff ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
-                foreach ($staffList as $staff) {
-                    echo '<option value="' . $staff['id'] . '">' . htmlspecialchars($staff['name']) . '</option>';
-                }
-                ?>
-            </select>
-        </label><br><br>
 
         <button type="submit">Add Service</button>
     </form>

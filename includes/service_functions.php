@@ -141,7 +141,6 @@ function updateService($pdo, $serviceId, $post)
 
     return [];
 }
-
 function getAllServicesWithStaff($pdo, $searchTerm = '')
 {
     $params = [];
@@ -171,6 +170,7 @@ function getAllServicesWithStaff($pdo, $searchTerm = '')
     $stmt->execute($params);
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Reuse prepared statements for efficiency
     $staffStmt = $pdo->prepare("
         SELECT s.name
         FROM staff s
@@ -178,16 +178,35 @@ function getAllServicesWithStaff($pdo, $searchTerm = '')
         WHERE a.service_id = ?
     ");
 
+    $scheduleStmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM service_schedule sc
+        JOIN staff_schedule ss ON ss.schedule_id = sc.id
+        WHERE sc.service_id = ?
+    ");
+
+    // Add new prepared statement
+    $residentCountStmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM resident_schedule rs
+        JOIN service_schedule ss ON rs.schedule_id = ss.id
+        WHERE ss.service_id = ?
+    ");
+
     foreach ($services as &$service) {
         $staffStmt->execute([$service['id']]);
         $service['assigned_staff'] = $staffStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $scheduleStmt->execute([$service['id']]);
+        $service['scheduled_count'] = (int)$scheduleStmt->fetchColumn();
+
+        $residentCountStmt->execute([$service['id']]);
+        $service['resident_count'] = (int)$residentCountStmt->fetchColumn();
     }
 
     unset($service);
     return $services;
 }
-
-
 
 function formatDuration($min, $max)
 {

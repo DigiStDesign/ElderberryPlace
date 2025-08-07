@@ -19,18 +19,6 @@ if (!$service) {
     die("Service not found.");
 }
 
-// Fetch all staff
-$staffList = $pdo->query("SELECT id, name FROM staff ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch assigned staff IDs
-$stmt = $pdo->prepare("SELECT staff_id FROM staff_assignments WHERE service_id = ?");
-$stmt->execute([$service_id]);
-$rows = $stmt->fetchAll();
-$assignedIds = array();
-foreach ($rows as $row) {
-    $assignedIds[] = $row['staff_id'];
-}
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
     $errors = updateService($pdo, $service_id, $_POST);
@@ -103,12 +91,6 @@ renderHeader("Edit Service");
                 <option value="Scheduled" <?= $service['status'] === 'Scheduled' ? 'selected' : '' ?>>Scheduled</option>
                 <option value="Inactive" <?= $service['status'] === 'Inactive' ? 'selected' : '' ?>>Inactive</option>
             </select>
-        </label><br><br>
-
-        <label>Assigned Staff:<br>
-            <?php
-            renderDropdownFromTable($pdo, 'staff', 'assigned_staff[]', $assignedIds);
-            ?>
         </label><br><br>
 
         <button type="submit" name="save">Save Changes</button>

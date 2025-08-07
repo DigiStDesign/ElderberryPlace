@@ -39,13 +39,32 @@ renderHeader("Service Management");
                         <?= formatDuration($service['duration_minutes_min'], $service['duration_minutes_max']) ?></p>
                     <p><strong>Status:</strong> <?= htmlspecialchars($service['status']) ?></p>
 
-                    <p><strong>Assigned Staff:</strong><br>
-                        <?= !empty($service['assigned_staff'])
-                            ? htmlspecialchars(implode(', ', $service['assigned_staff']))
-                            : 'None' ?>
+                    <p><strong>Scheduled Sessions:</strong>
+                        <?php if ($service['scheduled_count'] > 0): ?>
+                            <a href="view_service_sessions.php?service_id=<?= $service['id'] ?>">
+                                <?= $service['scheduled_count'] ?> scheduled
+                            </a>
+                        <?php else: ?>
+                            None yet
+                        <?php endif; ?>
                     </p>
 
+                <p><strong>Resident Bookings:</strong>
+                    <?php if ($service['resident_count'] > 0): ?>
+                        <a href="view_service_residents.php?service_id=<?= $service['id'] ?>">
+                            <?= $service['resident_count'] ?> booked
+                        </a>
+                    <?php else: ?>
+                        None yet
+                    <?php endif; ?>
+                </p>
+
+
+
                     <p><a href="edit_service.php?id=<?= $service['id'] ?>">Edit</a></p>
+                    <p><a href="schedule_staff.php?service_id=<?= $service['id'] ?>">Schedule This Service (Staff)</a></p>
+                    <p><a href="schedule_resident.php?service_id=<?= $service['id'] ?>">Schedule This Service (Resident)</a></p>
+
                 </div>
             <?php endforeach; ?>
         </div>

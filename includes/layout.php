@@ -23,6 +23,7 @@ function renderNav()
     $current = basename($_SERVER["PHP_SELF"]);
     echo '<nav>';
     echo '<a href="index.php"' . ($current === "index.php" ? ' class="active"' : '') . '>Home</a>';
+    echo '<a href="contact.php"' . ($current === "contact.php" ? ' class="active"' : '') . '>Contact</a>';
     echo '<a href="setup_db.php"' . ($current === "setup_db.php" ? ' class="active"' : '') . '>DB Setup</a>';
     echo '<a href="staff.php"' . ($current === "staff.php" ? ' class="active"' : '') . '>Staff</a>';
     echo '<a href="residents.php"' . ($current === "residents.php" ? ' class="active"' : '') . '>Residents</a>';
