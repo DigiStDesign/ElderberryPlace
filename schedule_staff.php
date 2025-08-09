@@ -9,18 +9,25 @@ renderHeader("Schedule a Service - Staff Only");
 $preselect_service_id = isset($_GET['service_id']) ? (int) $_GET['service_id'] : 0;
 
 // Fetch dropdown options
-$services = $pdo->query("SELECT id, name FROM services")->fetchAll(PDO::FETCH_ASSOC);
-$staff = $pdo->query("SELECT id, name FROM staff")->fetchAll(PDO::FETCH_ASSOC);
+$services = $pdo->query("SELECT id, name FROM services ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch STAFF users instead of staff table
+$staff = $pdo->query("
+    SELECT id, full_name AS name 
+    FROM users 
+    WHERE role = 'STAFF' AND is_active = 1
+    ORDER BY full_name ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 
 $messages = [];
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $service_id = $_POST['service_id'];
-    $staff_id = $_POST['staff_id'];
-    $date = $_POST['date'];
-    $start = $date . ' ' . $_POST['start_time'] . ':00';
-    $end = $date . ' ' . $_POST['end_time'] . ':00';
+    $service_id = (int)$_POST['service_id'];
+    $staff_id = (int)$_POST['staff_id'];
+    $date = trim($_POST['date']);
+    $start = $date . ' ' . trim($_POST['start_time']) . ':00';
+    $end = $date . ' ' . trim($_POST['end_time']) . ':00';
     $notes = trim($_POST['notes']);
 
     if (!isStaffAvailable($pdo, $staff_id, $start, $end)) {

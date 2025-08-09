@@ -2,6 +2,11 @@
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/service_functions.php';
+require_once __DIR__ . '/includes/auth.php';   
+
+start_secure_session();
+$role = current_role();
+
 
 try {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -59,11 +64,8 @@ renderHeader("Service Management");
                     <?php endif; ?>
                 </p>
 
+                <?php echo render_service_actions($service['id'], $role); ?>
 
-
-                    <p><a href="edit_service.php?id=<?= $service['id'] ?>">Edit</a></p>
-                    <p><a href="schedule_staff.php?service_id=<?= $service['id'] ?>">Schedule This Service (Staff)</a></p>
-                    <p><a href="schedule_resident.php?service_id=<?= $service['id'] ?>">Schedule This Service (Resident)</a></p>
 
                 </div>
             <?php endforeach; ?>
@@ -71,3 +73,4 @@ renderHeader("Service Management");
     <?php endif; ?>
 </main>
 <?php renderFooter(); ?>
+

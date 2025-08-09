@@ -3,7 +3,8 @@
 -- ===========================================
 SET FOREIGN_KEY_CHECKS = 0;
 
-DROP TABLE IF EXISTS 
+DROP TABLE IF EXISTS
+    visit_requests,
     resident_schedule,
     staff_schedule,
     service_schedule,
@@ -11,7 +12,8 @@ DROP TABLE IF EXISTS
     services,
     residents,
     staff,
-    categories;
+    categories,
+    users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -172,4 +174,43 @@ CREATE TABLE IF NOT EXISTS resident_schedule (
         ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (schedule_id) REFERENCES service_schedule(id)
         ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Run this once in your MySQL client
+CREATE TABLE users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  full_name VARCHAR(190) NOT NULL,
+  password_hash VARCHAR(64) NOT NULL,   -- stores md5() hex string
+  role ENUM('STAFF','RESIDENT','VISITOR', 'ADMIN') NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Default users
+INSERT INTO users (username, full_name, password_hash, role) VALUES
+('staff',    'John Staff',    MD5('staff'),    'STAFF'),
+('resident', 'Jill Resident',   MD5('resident'), 'RESIDENT'),
+('visitor',  'Victoria Visitor',   MD5('visitor'),  'VISITOR'),
+('admin',  'Adam Administrator',   MD5('admin'),  'ADMIN');
+
+-- ===========================================
+-- Create visit_requests table
+-- ===========================================
+CREATE TABLE visit_requests (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  visitor_user_id INT UNSIGNED NOT NULL,
+  resident_id INT UNSIGNED NOT NULL,
+  requested_start DATETIME NOT NULL,
+  requested_end DATETIME NULL,
+  status ENUM('PENDING','APPROVED','DECLINED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+  notes TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_visitor (visitor_user_id),
+  INDEX idx_resident (resident_id),
+  INDEX idx_status (status),
+  CONSTRAINT fk_vr_visitor FOREIGN KEY (visitor_user_id)
+    REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_vr_resident FOREIGN KEY (resident_id)
+    REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

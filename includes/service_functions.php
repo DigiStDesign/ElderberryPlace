@@ -264,13 +264,50 @@ function renderDropdownFromTable($pdo, $table, $name, $selectedValues = [], $idF
     $sizeAttr = $multiple ? ' size="' . (int) $size . '"' : '';
 
     echo '<select name="' . htmlspecialchars($name) . '"' . $multipleAttr . $sizeAttr . '>';
-
     foreach ($rows as $row) {
         $value = $row[$idField];
         $label = $row[$labelField];
         $selected = in_array($value, $selectedValues) ? ' selected' : '';
         echo '<option value="' . htmlspecialchars($value) . '"' . $selected . '>' . htmlspecialchars($label) . '</option>';
     }
-
     echo '</select>';
+}
+
+
+function render_service_actions($serviceId, $role)
+{
+    $html = '<div class="actions" style="margin-top:8px;">';
+
+    if ($role === 'ADMIN') {
+        $html .= action_button('edit_service.php?id=' . intval($serviceId), 'Edit');
+        $html .= action_button('schedule_staff.php?service_id=' . intval($serviceId), 'Schedule this service (Staff)');
+    }
+
+    if ($role === 'RESIDENT') {
+        $html .= action_button('schedule_resident.php?service_id=' . intval($serviceId), 'Book this service');
+    }
+
+    // Uncomment if STAFF also schedules:
+    // if ($role === 'STAFF') {
+    //     $html .= action_button('schedule_staff.php?service_id=' . intval($serviceId), 'Schedule this service (Staff)');
+    // }
+
+    $html .= '</div>';
+    return $html;
+}
+
+function action_button($href, $label)
+{
+    $h = htmlspecialchars($href);
+    $l = htmlspecialchars($label);
+    return '<a href="' . $h . '" style="
+        display:inline-block;
+        margin:4px 4px 0 0;
+        padding:8px 12px;
+        background:#2a7;
+        color:#fff;
+        text-decoration:none;
+        border-radius:5px;
+        font-size:14px;
+    ">' . $l . '</a>';
 }
