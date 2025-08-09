@@ -24,7 +24,8 @@ This project is part of **ICT30017** at Swinburne, TP2 2025. It provides a simpl
 
 9. **Clone the repository** to Laragon www folder, e.g. C:\Laragon\www\ElderberryPlace
 
-10 **Visit localhost:8080\ElderberryPlace\setup_db.php**
+10. **Visit localhost:8080\ElderberryPlace\setup_db.php** and run database init script.
+
 ---
 
 ## 📦 Getting Started (Mercury Setup)
