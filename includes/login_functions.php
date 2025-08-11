@@ -1,5 +1,4 @@
 <?php
-// -------- Helpers (keep PHP5.4-friendly) --------
 function is_post_request() {
     return $_SERVER['REQUEST_METHOD'] === 'POST';
 }
@@ -9,14 +8,26 @@ function get_post($key, $default = '') {
 }
 
 function get_next_url() {
-    // Prefer POST (preserves value after failed submit), else GET
-    if (isset($_POST['next'])) return $_POST['next'];
-    if (isset($_GET['next'])) return $_GET['next'];
-    return '/';
+    // Prefer POST then GET
+    $next = isset($_POST['next']) ? $_POST['next'] : (isset($_GET['next']) ? $_GET['next'] : '');
+    // Block empty, host-root "/", or absolute URLs
+    if ($next === '' || $next === '/' || strpos($next, '://') !== false) {
+        return 'index.php';
+    }
+    return ltrim($next, '/'); // keep it app-relative
 }
 
-function redirect_to($url) {
-    header('Location: ' . $url);
+function redirect_to($path) {
+    // Build a FULL absolute URL to the current folder (bullet-proof on shared hosts)
+    $https  = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $scheme = $https ? 'https' : 'http';
+    $host   = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
+    $dir    = rtrim(dirname($_SERVER['REQUEST_URI']), '/\\'); // e.g. /ict30017/s123456
+
+    $path = ltrim($path, '/');
+    if ($path === '') $path = 'index.php';
+
+    header('Location: ' . $scheme . '://' . $host . $dir . '/' . $path);
     exit;
 }
 
