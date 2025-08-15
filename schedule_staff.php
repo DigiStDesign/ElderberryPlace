@@ -3,7 +3,7 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/layout.php';
 require_once __DIR__ . '/includes/schedule_functions.php';
 
-renderHeader("Schedule a Service - Staff Only");
+renderHeader("Schedule a Service - Staff");
 
 // Get preselected service from link
 $preselect_service_id = isset($_GET['service_id']) ? (int) $_GET['service_id'] : 0;

@@ -41,6 +41,7 @@ function renderNav($role = 'GUEST', $user = null)
         echo navLink('staff.php', 'Staff', $current);
         echo navLink('residents.php', 'Residents', $current);
         echo navLink('visitors.php', 'Visitors', $current);
+        echo navLink('relationships.php', 'Relationships', $current);
         echo navLink('services.php', 'Services', $current);
         echo navLink('add_service.php', 'Add Service', $current);
         echo navLink('manage_categories.php', 'Manage Service Categories', $current);

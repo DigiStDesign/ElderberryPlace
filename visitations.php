@@ -58,28 +58,36 @@ function render_status_badge($status) {
 
 function fetch_visit_requests_for_resident(PDO $pdo, $residentId) {
     $sql = "
-        SELECT vr.id, vr.requested_start, vr.status, vr.notes,
-               u.full_name AS visitor_name
+        SELECT
+            vr.id,
+            vr.requested_start,
+            vr.status,
+            vr.notes,
+            u.full_name AS visitor_name
         FROM visit_requests vr
         JOIN users u ON u.id = vr.visitor_user_id
-        WHERE vr.resident_id = :rid
+        WHERE vr.resident_user_id = :rid
         ORDER BY vr.requested_start DESC
     ";
     $stmt = $pdo->prepare($sql);
-    $stmt->bindValue(':rid', $residentId, PDO::PARAM_INT);
+    $stmt->bindValue(':rid', (int)$residentId, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+
 function fetch_request_owned(PDO $pdo, $residentId, $requestId) {
-    $sql = "SELECT id, status FROM visit_requests
-            WHERE id = :id AND resident_id = :rid LIMIT 1";
+    $sql = "SELECT id, status
+            FROM visit_requests
+            WHERE id = :id AND resident_user_id = :rid
+            LIMIT 1";
     $st  = $pdo->prepare($sql);
-    $st->bindValue(':id',  $requestId, PDO::PARAM_INT);
-    $st->bindValue(':rid', $residentId, PDO::PARAM_INT);
+    $st->bindValue(':id',  (int)$requestId, PDO::PARAM_INT);
+    $st->bindValue(':rid', (int)$residentId, PDO::PARAM_INT);
     $st->execute();
     return $st->fetch(PDO::FETCH_ASSOC);
 }
+
 
 function can_transition($currentStatus, $action) {
     // Allowed:
@@ -98,18 +106,20 @@ function target_status_for($action) {
 }
 
 function update_request_status(PDO $pdo, $requestId, $residentId, $fromStatus, $toStatus) {
-    // Constrain by id + resident_id + expected current status to be safe
     $sql = "UPDATE visit_requests
             SET status = :toStatus
-            WHERE id = :id AND resident_id = :rid AND status = :fromStatus";
+            WHERE id = :id
+              AND resident_user_id = :rid
+              AND status = :fromStatus";
     $st  = $pdo->prepare($sql);
-    $st->bindValue(':toStatus',   $toStatus,   PDO::PARAM_STR);
-    $st->bindValue(':id',         $requestId,  PDO::PARAM_INT);
-    $st->bindValue(':rid',        $residentId, PDO::PARAM_INT);
-    $st->bindValue(':fromStatus', $fromStatus, PDO::PARAM_STR);
+    $st->bindValue(':toStatus',   $toStatus,                PDO::PARAM_STR);
+    $st->bindValue(':id',         (int)$requestId,          PDO::PARAM_INT);
+    $st->bindValue(':rid',        (int)$residentId,         PDO::PARAM_INT);
+    $st->bindValue(':fromStatus', $fromStatus,              PDO::PARAM_STR);
     $st->execute();
     return $st->rowCount() === 1;
 }
+
 
 /* ============== Handle Actions ============== */
 

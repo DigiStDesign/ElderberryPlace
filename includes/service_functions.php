@@ -141,77 +141,76 @@ function updateService($pdo, $serviceId, $post)
 
     return [];
 }
-function getAllServicesWithStaff($pdo, $searchTerm = '')
-{
-    $params = [];
-    $sql = "
-        SELECT s.*, c.name AS category_name
-        FROM services s
-        JOIN categories c ON s.category_id = c.id
-    ";
 
-    if ($searchTerm !== '') {
-        $sql .= "
-            WHERE s.name LIKE :search
-               OR c.name LIKE :search
-               OR s.id IN (
-                   SELECT a.service_id
-                   FROM staff_assignments a
-                   JOIN staff st ON a.staff_id = st.id
-                   WHERE st.name LIKE :search
-               )
-        ";
-        $params['search'] = '%' . $searchTerm . '%';
+function getAllServicesWithStaff(PDO $pdo, $search = '') {
+    $where = array();
+    $params = array();
+
+    if ($search !== '') {
+        // Search in service name, category name, or assigned staff (username/full_name)
+        $where[] = "(
+            s.name LIKE ?
+            OR c.name LIKE ?
+            OR EXISTS (
+                SELECT 1
+                FROM staff_assignments sa
+                JOIN users u2 ON u2.id = sa.staff_user_id
+                WHERE sa.service_id = s.id
+                  AND (u2.username LIKE ? OR u2.full_name LIKE ?)
+            )
+        )";
+        $like = '%' . $search . '%';
+        $params[] = $like; // s.name
+        $params[] = $like; // c.name
+        $params[] = $like; // u2.username
+        $params[] = $like; // u2.full_name
     }
 
-    $sql .= " ORDER BY s.name";
+    $whereSql = empty($where) ? '' : ('WHERE ' . implode(' AND ', $where));
+
+    // We keep counts as subqueries so grouping isn't needed
+    $sql = "
+        SELECT
+            s.id,
+            s.name,
+            s.description,
+            s.cost,
+            s.frequency,
+            s.duration_minutes_min,
+            s.duration_minutes_max,
+            s.status,
+            c.name AS category_name,
+
+            -- how many scheduled sessions exist for this service
+            (SELECT COUNT(*)
+             FROM service_schedule ss
+             WHERE ss.service_id = s.id) AS scheduled_count,
+
+            -- how many unique residents are booked across all sessions for this service
+            (SELECT COUNT(DISTINCT rs.resident_user_id)
+             FROM service_schedule ss2
+             JOIN resident_schedule rs ON rs.schedule_id = ss2.id
+             WHERE ss2.service_id = s.id) AS resident_count
+
+        FROM services s
+        LEFT JOIN categories c ON c.id = s.category_id
+        $whereSql
+        ORDER BY s.name ASC
+    ";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Reuse prepared statements for efficiency
-    $staffStmt = $pdo->prepare("
-        SELECT s.name
-        FROM staff s
-        JOIN staff_assignments a ON s.id = a.staff_id
-        WHERE a.service_id = ?
-    ");
-
-    $scheduleStmt = $pdo->prepare("
-        SELECT COUNT(*)
-        FROM service_schedule sc
-        JOIN staff_schedule ss ON ss.schedule_id = sc.id
-        WHERE sc.service_id = ?
-    ");
-
-    // Add new prepared statement
-    $residentCountStmt = $pdo->prepare("
-        SELECT COUNT(*) 
-        FROM resident_schedule rs
-        JOIN service_schedule ss ON rs.schedule_id = ss.id
-        WHERE ss.service_id = ?
-    ");
-
-    foreach ($services as &$service) {
-        $staffStmt->execute([$service['id']]);
-        $service['assigned_staff'] = $staffStmt->fetchAll(PDO::FETCH_COLUMN);
-
-        $scheduleStmt->execute([$service['id']]);
-        $service['scheduled_count'] = (int)$scheduleStmt->fetchColumn();
-
-        $residentCountStmt->execute([$service['id']]);
-        $service['resident_count'] = (int)$residentCountStmt->fetchColumn();
-    }
-
-    unset($service);
-    return $services;
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function formatDuration($min, $max)
-{
-    return ($min === $max) ? "$min minutes" : "$min-$max minutes";
+function formatDuration($min, $max) {
+    $min = (int)$min; $max = (int)$max;
+    if ($min && $max && $min !== $max) return $min . '–' . $max . ' mins';
+    if ($min) return $min . ' mins';
+    if ($max) return $max . ' mins';
+    return 'N/A';
 }
+
 
 function deleteServiceWithAssignments($pdo, $serviceId)
 {

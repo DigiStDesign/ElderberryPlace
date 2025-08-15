@@ -26,14 +26,15 @@ $sql = "
         s.name AS service_name,
         COALESCE(u.full_name, '(unassigned)') AS resident_name,
         sch.location
-    FROM staff_schedule ss
-    JOIN service_schedule sch   ON sch.id = ss.schedule_id
-    JOIN services s             ON s.id = sch.service_id
+    FROM staff_assignments sa
+    JOIN service_schedule sch ON sch.id = sa.schedule_id
+    JOIN services s          ON s.id = sch.service_id
     LEFT JOIN resident_schedule rs ON rs.schedule_id = sch.id
-    LEFT JOIN users u              ON u.id = rs.resident_id AND u.role = 'RESIDENT'
-    WHERE ss.staff_id = :sid
+    LEFT JOIN users u              ON u.id = rs.resident_user_id AND u.role = 'RESIDENT'
+    WHERE sa.staff_user_id = :sid
     ORDER BY sch.start_time ASC, u.full_name ASC
 ";
+
 $stmt = $pdo->prepare($sql);
 $stmt->execute([':sid' => $currentUser['id']]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

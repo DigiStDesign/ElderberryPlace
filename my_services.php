@@ -1,5 +1,5 @@
 <?php
-// /residents/my_services.php
+// /my_services.php  (resident view of their booked services)
 require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/layout.php';
@@ -16,7 +16,7 @@ if (!user_has_role('RESIDENT')) {
 
 if (!isset($pdo)) { die('Database connection ($pdo) not available.'); }
 
-/* ------------ Small helpers ------------ */
+/* ------------ Small helpers (PHP5) ------------ */
 
 function current_resident_id() {
     if (function_exists('current_user')) {
@@ -33,11 +33,43 @@ function format_dt($dt) {
 }
 
 /**
- * Derive a friendly status using start/end vs now:
- *  - If end < now  => Completed
- *  - If start > now => Upcoming
- *  - Else => In progress
+ * Fetch resident’s sessions with optional filter:
+ *  $filter = 'all' | 'upcoming' | 'completed'
+ * Uses new schema:
+ *  - resident_schedule.resident_user_id
+ *  - service_schedule.start_time/end_time
  */
+function fetch_services_for_resident(PDO $pdo, $residentId, $filter) {
+    $sql = "
+        SELECT
+            ss.id         AS schedule_id,
+            s.name        AS service_name,
+            ss.start_time AS start_time,
+            ss.end_time   AS end_time,
+            ss.location   AS location,
+            ss.notes      AS notes
+        FROM resident_schedule rs
+        JOIN service_schedule ss ON ss.id = rs.schedule_id
+        JOIN services        s  ON s.id = ss.service_id
+        WHERE rs.resident_user_id = :rid
+          AND (rs.status IS NULL OR rs.status <> 'CANCELLED')
+    ";
+
+    if ($filter === 'upcoming') {
+        $sql .= " AND ss.start_time > NOW() ";
+    } elseif ($filter === 'completed') {
+        $sql .= " AND ss.end_time < NOW() ";
+    }
+
+    $sql .= " ORDER BY ss.start_time DESC";
+
+    $st = $pdo->prepare($sql);
+    $st->bindValue(':rid', (int)$residentId, PDO::PARAM_INT);
+    $st->execute();
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/** Derive a friendly status */
 function derive_status($start, $end) {
     $now = time();
     $st  = strtotime($start);
@@ -58,40 +90,6 @@ function status_badge($status) {
     return '<span style="'.$base.$style.'">'.e($status).'</span>';
 }
 
-/**
- * Fetch resident’s sessions with optional filter:
- *  $filter = 'all' | 'upcoming' | 'completed'
- */
-function fetch_services_for_resident(PDO $pdo, $residentId, $filter) {
-    $baseSql = "
-        SELECT
-            ss.id           AS schedule_id,
-            s.name          AS service_name,
-            ss.start_time   AS start_time,
-            ss.end_time     AS end_time,
-            ss.location     AS location,
-            ss.notes        AS notes
-        FROM resident_schedule rs
-        JOIN service_schedule ss ON ss.id = rs.schedule_id
-        JOIN services s          ON s.id = ss.service_id
-        WHERE rs.resident_id = :rid
-    ";
-
-    // Apply simple time-based filter
-    if ($filter === 'upcoming') {
-        $baseSql .= " AND ss.start_time > NOW() ";
-    } elseif ($filter === 'completed') {
-        $baseSql .= " AND ss.end_time   < NOW() ";
-    }
-
-    $baseSql .= " ORDER BY ss.start_time DESC";
-
-    $st = $pdo->prepare($baseSql);
-    $st->bindValue(':rid', (int)$residentId, PDO::PARAM_INT);
-    $st->execute();
-    return $st->fetchAll(PDO::FETCH_ASSOC);
-}
-
 /* ------------ Page data ------------ */
 
 $residentId = current_resident_id();
@@ -101,7 +99,6 @@ if (!in_array($view, array('all','upcoming','completed'))) $view = 'all';
 $rows = fetch_services_for_resident($pdo, $residentId, $view);
 
 /* ------------ Render ------------ */
-
 renderHeader("My Services");
 ?>
 <main class="container" style="max-width: 960px; margin: 2rem auto;">
@@ -134,9 +131,7 @@ renderHeader("My Services");
                 </thead>
                 <tbody>
                 <?php foreach ($rows as $r): ?>
-                    <?php
-                        $status = derive_status($r['start_time'], $r['end_time']);
-                    ?>
+                    <?php $status = derive_status($r['start_time'], $r['end_time']); ?>
                     <tr>
                         <td style="padding:10px; border-bottom:1px solid #f0f0f0;"><?php echo e($r['service_name']); ?></td>
                         <td style="padding:10px; border-bottom:1px solid #f0f0f0;"><?php echo e(format_dt($r['start_time'])); ?></td>
