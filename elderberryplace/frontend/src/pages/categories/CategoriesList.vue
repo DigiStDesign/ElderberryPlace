@@ -1,0 +1,1 @@
+<template><section><h2>Categories</h2><p>Coming soon…</p></section></template>

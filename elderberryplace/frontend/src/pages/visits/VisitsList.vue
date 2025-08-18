@@ -1,0 +1,1 @@
+<template><section><h2>Visits</h2><p>Coming soon…</p></section></template>
