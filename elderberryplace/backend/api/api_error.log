@@ -5,3 +5,9 @@
 [16-Aug-2025 06:56:02 Australia/Melbourne] PHP Fatal error:  Call to undefined function Sched_my_services() in F:\laragon\www\api\v1\routes.php on line 76
 [16-Aug-2025 07:15:00 Australia/Melbourne] PHP Fatal error:  Call to undefined function Sched_my_services() in F:\laragon\www\api\v1\routes.php on line 76
 [16-Aug-2025 09:00:45 Australia/Melbourne] EXCEPTION: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '4-3-2' for key 'uq_vrl'
+[04-Sep-2025 04:03:26 UTC] PHP[2] require_once(/Users/taner/elderberryplace/elderberryplace/backend/config/.env.php): Failed to open stream: No such file or directory @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:4
+[04-Sep-2025 04:04:05 UTC] PHP[2] require_once(/Users/taner/elderberryplace/elderberryplace/backend/config/.env.php): Failed to open stream: No such file or directory @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:4
+[04-Sep-2025 04:04:13 UTC] PHP[2] require_once(/Users/taner/elderberryplace/elderberryplace/backend/config/.env.php): Failed to open stream: No such file or directory @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:4
+[04-Sep-2025 04:05:55 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
+[04-Sep-2025 04:06:02 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
+[04-Sep-2025 04:06:45 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
