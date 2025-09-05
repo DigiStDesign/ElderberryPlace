@@ -1,198 +1,225 @@
 # ElderberryPlace
 
-Modern **Vue 3 (Vite)** frontend + **PHP** REST API.
+Vue 3 (Vite) **frontend** + PHP **REST API** backend.
+
+This README walks you through **local setup end‑to‑end**, including MySQL, the PHP API, the Vue app, CSRF/CORS, and role‑based redirects.
+
+---
 
 ## Project layout
 
 ```
 elderberryplace/
-├─ backend/                  # PHP codebase 
-│  ├─ api/                   # /api/v1 controllers, routing, libs
-│  ├─ includes/, config/, sql/
-│  └─ index.php …
+├─ backend/                  # PHP codebase
+│  ├─ api/
+│  │  ├─ v1/                 # controllers + route map
+│  │  │  ├─ AuthController.php
+│  │  │  └─ routes.php
+│  │  └─ lib/                # http helpers, auth helpers, db helpers
+│  │     └─ http.php         # CORS set here (for local dev)
+│  ├─ config/                # db config (.env.php)
+│  ├─ sql/                   # init_db.sql schema + seeds
+│  └─ index.php              # front controller (receives /api/index.php?r=v1/...)
 └─ frontend/                 # Vue 3 + Vite app
    ├─ src/
-   │  ├─ api/                # axios client + API modules
-   │  ├─ pages/              # route views (Residents, etc.)
-   │  ├─ components/         # reusable UI
-   │  ├─ router/             # routes + guards
-   │  └─ stores/             # Pinia (auth)
+   │  ├─ api/                # axios client + API modules (auth, residents, ...)
+   │  ├─ components/         # AppHeader, AppNav, DataTable, etc.
+   │  ├─ pages/              # LoginView, HomeView, ResidentsList, StaffList, ...
+   │  ├─ router/             # routes + guards (role-based redirects)
+   │  └─ stores/             # Pinia auth store
    ├─ index.html
    ├─ package.json
-   └─ vite.config.ts         # dev proxy to PHP API
+   └─ vite.config.ts (optional proxy; see below)
 ```
 
 ---
 
-## Prerequisites
+## Requirements
 
-- **Node.js** 18+ (LTS recommended)
-- **npm** 9+
-- **PHP** 7.4+ (PHP 8.x recommended)
-- A local DB that matches `backend/config/db.php` (PDO)
+- **Node.js 18+** (LTS recommended)
+- **npm 9+**
+- **PHP 7.4+** (PHP 8.x recommended)
+- **MySQL 8.x** (or MariaDB). Examples below assume MySQL.
+
+> macOS users: Homebrew makes installs easy.
 
 ---
 
-## 1) Backend – PHP API
+## Database (MySQL) setup
 
-From `elderberryplace/backend`:
+1) **Install + start MySQL** (macOS via Homebrew):
 
-### Configure DB
-- Copy `config/.env.php.example` → `config/.env.php` and fill in DB creds  
-  (see example below).
-- Initialize schema if needed: run SQL in `sql/init_db.sql` on your DB.
+```bash
+brew update
+brew install mysql
+brew services start mysql
+```
 
-### Start the PHP dev server
+2) **Create DB + user** (run in Terminal):
+
+```bash
+mysql -u root -p
+```
+At the `mysql>` prompt, run:
+```sql
+CREATE DATABASE elderberry CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'elderuser'@'localhost' IDENTIFIED BY 'testpw';
+GRANT ALL PRIVILEGES ON elderberry.* TO 'elderuser'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+3) **Import schema + demo data**:
+
+```bash
+mysql -u elderuser -p elderberry < backend/sql/init_db.sql
+# password: testpw
+```
+
+This seeds demo users (passwords are **md5** in demo DB; backend compares accordingly):
+- `admin / admin`
+- `staff / staff`
+- `resident / resident`
+- `visitor / visitor`
+
+4) **Configure backend DB credentials** in `backend/config/.env.php`:
+
+```php
+<?php
+$DB_HOST = '127.0.0.1';   // use 127.0.0.1 to force TCP
+$DB_PORT = 3306;
+$DB_NAME = 'elderberry';
+$DB_USER = 'elderuser';
+$DB_PASS = 'testpw';
+```
+
+---
+
+## Backend (PHP API)
+
+From repo root:
+
 ```bash
 cd backend
 php -S 127.0.0.1:8000
 ```
 
-API base will be `http://127.0.0.1:8000/api/v1`.
-
-**Key files**
-- Routes: `backend/api/v1/routes.php`
-- Auth/session helpers: `backend/api/lib/auth_api.php`, `backend/api/lib/http.php`
-- Controllers: `backend/api/v1/*Controller.php`
-
-### Example `config/.env.php.example`
+### Important: local CORS for dev
+We **enable CORS** for the Vite dev server in `backend/api/lib/http.php`:
 ```php
-<?php
-// Copy to .env.php and edit
-return array(
-  'DB_DSN'  => 'mysql:host=127.0.0.1;dbname=elderberry;charset=utf8mb4',
-  'DB_USER' => 'root',
-  'DB_PASS' => 'password'
-);
+// Allows http://localhost:5173 to call the API during local dev
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 ```
+> These headers are only for local development; adjust for production.
 
-*Your `config/db.php` should read from this file or define a PDO.*  
+### API base path
+The front controller expects: `http://127.0.0.1:8000/api/index.php?r=v1/...`
+
+Key routes (see `backend/api/v1/routes.php`):
+- `GET  v1/csrf` → `{ ok, data: { csrf } }`
+- `POST v1/auth/login` body `{ username, password }` → `{ ok, data: { user, csrf } }`
+- `POST v1/auth/logout`
+- `GET  v1/me` → `{ ok, data: { user } }`
+- Residents/Staff/Visitors/Categories/Services/Schedule… (see file for full list)
+
+### Auth notes
+- `AuthController.php` uses PHP sessions + returns `{ ok:true, data:{ user, csrf } }` on login.
+- Demo DB stores `password_hash` as md5 (for demo only) and checks case‑insensitively.
 
 ---
 
-## 2) Frontend – Vue 3 + Vite
+## Frontend (Vue 3 + Vite)
 
-From `elderberryplace/frontend`:
+From repo root:
 
-### Install
 ```bash
 cd frontend
 npm install
-```
-
-### Dev proxy (avoid CORS)
-Create `vite.config.ts`:
-
-```ts
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-
-export default defineConfig({
-  plugins: [vue()],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true
-      }
-    }
-  }
-})
-```
-
-> This forwards `/api/v1/...` to the PHP server you run at `127.0.0.1:8000`.
-
-### Run
-```bash
 npm run dev
 ```
 Open the shown URL (usually `http://localhost:5173`).
 
+### Axios client baseURL (no proxy mode)
+We currently **call the PHP API directly** from the browser. See `frontend/src/api/client.js`:
+```js
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: 'http://127.0.0.1:8000/api/index.php?r=v1', // IMPORTANT: no leading slash after r=
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // send PHP session cookie
+})
+
+// Attach CSRF to non‑GET requests if available
+api.interceptors.request.use(cfg => {
+  const csrf = localStorage.getItem('csrf') || window.__CSRF
+  if (csrf) cfg.headers['X-CSRF-Token'] = csrf
+  return cfg
+})
+
+export default api
+```
+> Because we call across ports (5173 → 8000), CORS headers are required (see backend section above).
+
+### Optional: Vite proxy mode
+As an alternative to CORS, you can proxy `/api` in `vite.config.ts` so the browser thinks it’s same‑origin:
+```ts
+export default defineConfig({
+  plugins: [vue()],
+  server: {
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true }
+    }
+  }
+})
+```
+If you choose proxy mode, change Axios baseURL to `/api/index.php?r=v1`.
+
 ---
 
-## Auth & CSRF (how the app talks to the API)
+## Role‑based redirects (what happens after login)
 
-- **Session cookie**: set by PHP on `/auth/login` (via proxy, same-origin in dev).
-- **CSRF**: required for non-GET methods via header `X-CSRF-Token`.
-  - After login, backend returns `{ ok:true, data:{ user, csrf } }`.
-  - Frontend stores `csrf` and injects it on POST/PUT/DELETE (Axios interceptor).
-  - Alternatively available from `GET /api/v1/csrf`.
+- Frontend reads `user.role` from the login response and redirects:
+  - **admin**   → `/home`
+  - **staff**   → `/staff`
+  - **resident**→ `/residents`
 
-**Relevant frontend code**
-- `src/stores/auth.js` — login/logout, stores `user` + `csrf`, `init()` loads `/me` + `/csrf`.
-- `src/api/auth.js` — wraps `/auth/login`, `/me`, `/csrf`, `/auth/logout`.
-- `src/api/client.js` — Axios with `withCredentials: true` and CSRF header injection.
-
----
-
-## Main routes (high level)
-
-(See exact details in `backend/api/v1/routes.php`.)
-
-- **Auth**
-  - `GET /csrf` → `{ ok, data:{ csrf } }`
-  - `POST /auth/login` body `{ username, password }` → `{ ok, data:{ user, csrf } }`
-  - `POST /auth/logout`
-  - `GET /me` → `{ ok, data:{ user } }`
-- **Residents**
-  - `GET /residents`
-  - `POST /residents`
-  - `GET /residents/:id`
-  - `PUT /residents/:id`
-  - `DELETE /residents/:id`
-- **Other modules** (placeholders in frontend)
-  - `/staff`, `/visitors`, `/services`, `/visits`,
-    `/service-schedule`, `/categories`, `/relationships`
+Where it’s implemented:
+- `src/pages/LoginView.vue` → determines landing after login (with robust role normalization)
+- `src/router/guards.js`    → central helpers + route guards
+  - `requireAuth` blocks unauthenticated access
+  - `redirectIfAuthed` sends logged‑in users away from `/login`
+  - `requireRole([roles])` optional role enforcement per route
 
 ---
 
-## Running both together (dev)
+## End‑to‑end local run (quick steps)
 
-1. **Terminal A**
+1. **Start DB** (if not running):
+   ```bash
+   brew services start mysql
+   ```
+2. **Start backend**:
    ```bash
    cd backend
    php -S 127.0.0.1:8000
    ```
-2. **Terminal B**
+3. **Start frontend** (new terminal):
    ```bash
    cd frontend
    npm run dev
    ```
-3. Open `http://localhost:5173`, log in with a valid **username/password** (not email).
+4. **Open** `http://localhost:5173` and log in with a demo user (e.g., `staff / staff`).
+
+You should be redirected based on role: `/home`, `/staff`, or `/residents`.
 
 ---
 
-## Build & preview (frontend)
-
-```bash
-cd frontend
-npm run build
-npm run preview
-```
-
-This outputs static files to `frontend/dist/`.
-
----
-
-## Deploying later on Mercury (summary)
-
-- Upload `frontend/dist/` to your web directory (e.g., `/~username/elderberry/`).
-- If using **history mode** (default): add an `.htaccess` SPA fallback:
-
-```
-RewriteEngine On
-RewriteBase /~username/elderberry/
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-RewriteRule . index.html [L]
-```
-
-- Or switch to hash history in `router/index.js`.
-- Host the PHP API under a sibling path (e.g., `/~username/elderberry-api/`) and adjust frontend API base if needed.
-
-
-## Scripts (quick ref)
+## Scripts (cheat‑sheet)
 
 **Backend**
 ```bash
@@ -201,7 +228,19 @@ php -S 127.0.0.1:8000
 
 **Frontend**
 ```bash
+npm install
 npm run dev
 npm run build
 npm run preview
 ```
+
+**MySQL**
+```bash
+brew services start mysql
+brew services stop mysql
+mysql -u elderuser -p elderberry
+```
+
+---
+
+

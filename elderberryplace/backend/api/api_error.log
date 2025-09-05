@@ -11,3 +11,5 @@
 [04-Sep-2025 04:05:55 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
 [04-Sep-2025 04:06:02 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
 [04-Sep-2025 04:06:45 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
+[04-Sep-2025 04:36:39 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
+[04-Sep-2025 04:38:02 UTC] PHP[2] Undefined variable $DB_HOST @ /Users/taner/elderberryplace/elderberryplace/backend/config/db.php:7
