@@ -8,7 +8,6 @@ import LoginView from '../pages/LoginView.vue'
 import ResidentsList from '../pages/residents/ResidentsList.vue'
 import ResidentForm from '../pages/residents/ResidentForm.vue'
 
-
 // Lazy-loaded components: these routes are code-split and only loaded when visited.
 const StaffList = () => import('../pages/staff/StaffList.vue')
 const VisitorsList = () => import('../pages/visitors/VisitorsList.vue')
@@ -17,6 +16,10 @@ const VisitsList = () => import('../pages/visits/VisitsList.vue')
 const ScheduleView = () => import('../pages/schedule/ScheduleView.vue')
 const CategoriesList = () => import('../pages/categories/CategoriesList.vue')
 const RelationshipsView = () => import('../pages/relationships/RelationshipsView.vue')
+
+// NEW: Medication pages (lazy-loaded)
+const RxCreate = () => import('../pages/meds/RxCreate.vue')
+const MAR = () => import('../pages/meds/MAR.vue')
 
 // Define the app’s routes and apply guards like requireAuth and redirectIfAuthed.
 const router = createRouter({
@@ -33,6 +36,10 @@ const router = createRouter({
     { path: '/residents', component: ResidentsList, beforeEnter: requireAuth },
     { path: '/residents/new', component: ResidentForm, beforeEnter: requireAuth },
     { path: '/residents/:id', component: ResidentForm, beforeEnter: requireAuth, props: true },
+
+    // NEW: Medication routes under a resident
+    { path: '/residents/:id/rx/new', name: 'rx-new', component: RxCreate, beforeEnter: requireAuth, props: true },
+    { path: '/residents/:id/mar',    name: 'mar',    component: MAR,      beforeEnter: requireAuth, props: true },
 
     // Staff section of the app
     { path: '/staff', component: StaffList, beforeEnter: requireAuth },
