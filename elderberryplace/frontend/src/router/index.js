@@ -1,9 +1,9 @@
 // This file sets up Vue Router with route definitions and guards.
 
 import { createRouter, createWebHistory } from 'vue-router'  // Import router helpers
-import { requireAuth, redirectIfAuthed } from './guards'        // Import route guards
+import { requireAuth, redirectIfAuthed } from './guards'     // Import route guards
 
-import HomeView from '../pages/HomeView.vue'                   // Import views
+import HomeView from '../pages/HomeView.vue'                 // Import views
 import LoginView from '../pages/LoginView.vue'
 import ResidentsList from '../pages/residents/ResidentsList.vue'
 import ResidentForm from '../pages/residents/ResidentForm.vue'
@@ -21,7 +21,14 @@ const RelationshipsView = () => import('../pages/relationships/RelationshipsView
 const RxCreate = () => import('../pages/meds/RxCreate.vue')
 const MAR = () => import('../pages/meds/MAR.vue')
 
-// Define the app’s routes and apply guards like requireAuth and redirectIfAuthed.
+// NEW: Alerts page (lazy-loaded)
+const MedAlerts = () => import('../pages/alerts/MedAlerts.vue')
+
+// NEW: Reports (lazy-loaded)
+const MedicationReport   = () => import('../pages/reports/MedicationReport.vue')   // ICT-189
+const StaffWorkload      = () => import('../pages/reports/StaffWorkload.vue')      // ICT-212
+const ComplianceReports  = () => import('../pages/reports/ComplianceReports.vue')  // ICT-213
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -40,6 +47,9 @@ const router = createRouter({
     // NEW: Medication routes under a resident
     { path: '/residents/:id/rx/new', name: 'rx-new', component: RxCreate, beforeEnter: requireAuth, props: true },
     { path: '/residents/:id/mar',    name: 'mar',    component: MAR,      beforeEnter: requireAuth, props: true },
+
+    // NEW: Alerts
+    { path: '/alerts', name: 'alerts', component: MedAlerts, beforeEnter: requireAuth },
 
     // Staff section of the app
     { path: '/staff', component: StaffList, beforeEnter: requireAuth },
@@ -61,6 +71,11 @@ const router = createRouter({
 
     // Relationships section of the app
     { path: '/relationships', component: RelationshipsView, beforeEnter: requireAuth },
+
+    // NEW: Reports
+    { path: '/reports/medication',        name: 'reports-medication',        component: MedicationReport,  beforeEnter: requireAuth },
+    { path: '/reports/staff-workload',    name: 'reports-staff-workload',    component: StaffWorkload,     beforeEnter: requireAuth },
+    { path: '/reports/compliance',        name: 'reports-compliance',        component: ComplianceReports,  beforeEnter: requireAuth },
 
     // Redirect unknown routes to home
     { path: '/:pathMatch(.*)*', redirect: '/' }

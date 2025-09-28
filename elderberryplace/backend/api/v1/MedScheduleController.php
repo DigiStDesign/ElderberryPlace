@@ -8,7 +8,7 @@ require_once __DIR__ . '/../lib/db_api.php';
 /**
  * GET /v1/residents/{id}/med-due?from=YYYY-MM-DD HH:MM&to=YYYY-MM-DD HH:MM
  */
-function Med_due_for_resident(int $residentId) {
+function Med_due_for_resident($residentId) { // drop type hints if older PHP
   require_staff_api();
   $pdo = api_db();
 
@@ -30,7 +30,7 @@ function Med_due_for_resident(int $residentId) {
           ORDER BY ms.due_at ASC";
 
   $st = $pdo->prepare($sql);
-  $st->execute([$residentId, $from, $to]);
+  $st->execute([(int)$residentId, $from, $to]);
 
   $rows = $st->fetchAll(PDO::FETCH_ASSOC);
   foreach ($rows as &$r) {
@@ -45,26 +45,52 @@ function Med_due_for_resident(int $residentId) {
  * POST /v1/med-schedule/{id}/administer
  * Body: { "outcome":"given|refused|withheld|missed", "dose_given":"1 tab", "notes":"", "staff_user_id": 2, "witness_user_id": null }
  */
-function Med_administer(int $scheduleId) {
+function Med_administer($scheduleId) { // drop type hint if older PHP
   require_staff_api();
   $b = read_json();
 
-  if (empty($b['outcome']) || empty($b['staff_user_id'])) {
-    return json_error(422, 'Missing required fields: outcome, staff_user_id');
+  // Normalize + validate
+  $outcome = isset($b['outcome']) ? strtolower(trim($b['outcome'])) : '';
+  $allowed = ['given','refused','withheld','missed'];
+  if (!in_array($outcome, $allowed, true) || empty($b['staff_user_id'])) {
+    // use json_error(...) if that's your helper name
+    return json_err('BAD_REQUEST', 'Missing/invalid fields: outcome, staff_user_id', 422, null);
   }
 
-  $pdo = api_db();
-  $st = $pdo->prepare("INSERT INTO administrations
-      (schedule_id, administered_at, outcome, dose_given, notes, staff_user_id, witness_user_id)
-      VALUES (?, NOW(), ?, ?, ?, ?, ?)");
-  $st->execute([
-    (int)$scheduleId,
-    $b['outcome'],
-    isset($b['dose_given']) ? $b['dose_given'] : null,
-    isset($b['notes']) ? $b['notes'] : null,
-    (int)$b['staff_user_id'],
-    isset($b['witness_user_id']) ? (int)$b['witness_user_id'] : null
-  ]);
+  $staffId   = (int)$b['staff_user_id'];
+  $witnessId = isset($b['witness_user_id']) ? (int)$b['witness_user_id'] : null;
 
-  json_ok(['id' => (int)$pdo->lastInsertId()], 201);
+  $pdo = api_db();
+
+  // Ensure the schedule exists
+  $chk = $pdo->prepare("SELECT id FROM med_schedule WHERE id=?");
+  $chk->execute([(int)$scheduleId]);
+  if (!$chk->fetchColumn()) {
+    return json_err('NOT_FOUND', 'Schedule item not found', 404, null);
+  }
+
+  // Optional: prevent duplicate recording for this schedule (idempotency)
+  $exists = $pdo->prepare("SELECT id FROM administrations WHERE schedule_id=? LIMIT 1");
+  $exists->execute([(int)$scheduleId]);
+  if ($exists->fetchColumn()) {
+    return json_err('CONFLICT', 'Administration already recorded for this schedule item', 409, null);
+  }
+
+  try {
+    $st = $pdo->prepare("INSERT INTO administrations
+        (schedule_id, administered_at, outcome, dose_given, notes, staff_user_id, witness_user_id)
+        VALUES (?, NOW(), ?, ?, ?, ?, ?)");
+    $st->execute([
+      (int)$scheduleId,
+      $outcome,
+      isset($b['dose_given']) ? $b['dose_given'] : null,
+      isset($b['notes']) ? $b['notes'] : null,
+      $staffId,
+      $witnessId
+    ]);
+    json_ok(['id' => (int)$pdo->lastInsertId()], 201);
+  } catch (PDOException $e) {
+    // FK or other DB error
+    return json_err('SERVER_ERROR', 'Failed to record administration', 500, ['error' => $e->getMessage()]);
+  }
 }

@@ -8,7 +8,7 @@ require_once __DIR__ . '/../lib/db_api.php';
 /**
  * GET /v1/residents/{id}/prescriptions
  */
-function Rx_list_by_resident(int $residentId) {
+function Rx_list_by_resident($residentId) { // remove type hint if on PHP <7
   require_staff_api();
   $pdo = api_db();
 
@@ -19,7 +19,7 @@ function Rx_list_by_resident(int $residentId) {
           WHERE rx.resident_user_id = ?
           ORDER BY FIELD(rx.status,'active','paused','stopped'), rx.start_date DESC";
   $st = $pdo->prepare($sql);
-  $st->execute([$residentId]);
+  $st->execute([(int)$residentId]);
   $rows = $st->fetchAll(PDO::FETCH_ASSOC);
   foreach ($rows as &$r) { $r['id'] = (int)$r['id']; $r['prn'] = (int)$r['prn']; }
   json_ok(['items' => $rows]);
@@ -27,25 +27,29 @@ function Rx_list_by_resident(int $residentId) {
 
 /**
  * POST /v1/residents/{id}/prescriptions
- * Body:
- * {
- *   "medication_id": 1, "dose": "1 tablet", "route": "PO",
- *   "prn": false, "frequency": "BID",
- *   "start_date": "2025-09-22", "end_date": "2025-10-22",
- *   "times": ["08:00","20:00"], "max_daily_dose":"4 tablets",
- *   "instructions":"with food", "prescriber":"Dr Smith"
- * }
  */
-function Rx_create(int $residentId) {
+function Rx_create($residentId) { // remove type hint if on PHP <7
   require_staff_api();
   $b = read_json();
 
   // basic validation
   $required = ['medication_id','dose','frequency','start_date'];
   foreach ($required as $k) {
-    if (!isset($b[$k]) || $b[$k]==='') return json_error(422, "Missing field: $k");
+    if (!isset($b[$k]) || $b[$k]==='') return json_err('BAD_REQUEST', "Missing field: $k", 422, null);
   }
   if (!isset($b['times']) || !is_array($b['times'])) $b['times'] = [];
+
+  // optional: validate date order
+  if (!empty($b['end_date']) && $b['end_date'] < $b['start_date']) {
+    return json_err('BAD_REQUEST', 'end_date must be on/after start_date', 422, null);
+  }
+
+  // optional: normalize/validate times (HH:mm)
+  $times = [];
+  foreach ($b['times'] as $t) {
+    if (preg_match('/^\d{2}:\d{2}$/', $t)) $times[] = $t;
+  }
+  $b['times'] = $times;
 
   $pdo = api_db();
   $pdo->beginTransaction();
@@ -70,37 +74,32 @@ function Rx_create(int $residentId) {
     ]);
     $rxId = (int)$pdo->lastInsertId();
 
-    _rx_generate_schedule($pdo, $rxId, $b['start_date'], $b['end_date'] ?? null, $b['times']);
+    _rx_generate_schedule($pdo, $rxId, $b['start_date'], !empty($b['end_date']) ? $b['end_date'] : null, $b['times']);
 
     $pdo->commit();
     json_ok(['id' => $rxId], 201);
-  } catch (Throwable $e) {
+  } catch (Exception $e) { // use Exception if not on PHP 7+
     $pdo->rollBack();
-    json_error(500, 'Failed to create prescription: '.$e->getMessage());
+    return json_err('SERVER_ERROR', 'Failed to create prescription', 500, ['error'=>$e->getMessage()]);
   }
 }
 
 /**
  * Helper: expand schedule rows (next 14 days or until end_date)
  */
-function _rx_generate_schedule(PDO $pdo, int $rxId, string $startDate, ?string $endDate, array $times, int $window=60, int $horizonDays=14) {
-  // if PRN (no times), do nothing
-  if (count($times) === 0) return;
+function _rx_generate_schedule(PDO $pdo, $rxId, $startDate, $endDate, array $times, $window=60, $horizonDays=14) { // remove scalar/nullable types if needed
+  if (count($times) === 0) return; // PRN: no fixed times
 
   $start = new DateTime($startDate.' 00:00:00');
   $end = $endDate ? new DateTime($endDate.' 23:59:59') : (clone $start)->modify("+{$horizonDays} days");
 
   $ins = $pdo->prepare("INSERT INTO med_schedule (prescription_id, due_at, window_minutes) VALUES (?,?,?)");
 
-  $cursor = clone $start;
-  while ($cursor <= $end) {
+  for ($cursor = clone $start; $cursor <= $end; $cursor->modify('+1 day')) {
     $dateStr = $cursor->format('Y-m-d');
     foreach ($times as $t) {
-      // Expect HH:mm
       $dt = DateTime::createFromFormat('Y-m-d H:i', "$dateStr $t");
-      if ($dt === false) continue;
-      $ins->execute([$rxId, $dt->format('Y-m-d H:i:s'), $window]);
+      if ($dt) $ins->execute([(int)$rxId, $dt->format('Y-m-d H:i:s'), (int)$window]);
     }
-    $cursor->modify('+1 day');
   }
 }
