@@ -29,6 +29,10 @@ require_once __DIR__ . '/IncidentsController.php';
 /** ---- ICT-214: PDF export ---- */
 require_once __DIR__ . '/ReportsExportController.php';
 
+/** ---- Billing System ---- */
+require_once __DIR__ . '/controllers/BillingController.php';
+
+
 function route_v1($method, $path) {
     // --- Auth / CSRF
     if ($method === 'GET'  && $path === '/csrf')        { json_ok(array('csrf' => csrf_value_api())); return; }
@@ -124,7 +128,7 @@ function route_v1($method, $path) {
 
     /** ---------- Alerts ---------- */
     if ($method === 'GET' && $path === '/med-alerts') { MedAlerts_list(); return; }
-    if (preg_match('#^/med-alerts/(\d+)$#', $path, $m) && $method === 'PATCH')) {
+    if (preg_match('#^/med-alerts/(\d+)$#', $path, $m) && $method === 'PATCH') {
         MedAlerts_update((int)$m[1]); return;
     }
 
@@ -143,6 +147,60 @@ function route_v1($method, $path) {
 
     /** ---------- ICT-214: PDF export ---------- */
     if ($method === 'GET' && $path === '/reports/export/pdf') { Reports_export_pdf(); return; }
+
+    /** ============================================
+     *  BILLING SYSTEM ROUTES
+     *  ============================================ */
+    
+    $billing = new BillingController();
+    
+    // Get unbilled items for a resident
+    if (preg_match('#^/billing/unbilled-items/(\d+)$#', $path, $m) && $method === 'GET') {
+        $billing->getUnbilledItems((int)$m[1]);
+        return;
+    }
+    
+    // Bills CRUD
+    if ($path === '/billing/bills' && $method === 'GET')  { $billing->listBills();  return; }
+    if ($path === '/billing/bills' && $method === 'POST') { $billing->createBill(); return; }
+    
+    if (preg_match('#^/billing/bills/(\d+)$#', $path, $m)) {
+        if ($method === 'GET')    { $billing->getBill((int)$m[1]);    return; }
+        if ($method === 'PUT')    { $billing->updateBill((int)$m[1]); return; }
+        if ($method === 'DELETE') { $billing->cancelBill((int)$m[1]); return; }
+    }
+    
+    // Export bill as PDF
+    if (preg_match('#^/billing/bills/(\d+)/pdf$#', $path, $m) && $method === 'GET') {
+        $billing->exportBillPDF((int)$m[1]);
+        return;
+    }
+    
+    // Receipts CRUD
+    if ($path === '/billing/receipts' && $method === 'GET')  { $billing->listReceipts();  return; }
+    if ($path === '/billing/receipts' && $method === 'POST') { $billing->createReceipt(); return; }
+    
+    if (preg_match('#^/billing/receipts/(\d+)$#', $path, $m) && $method === 'GET') {
+        $billing->getReceipt((int)$m[1]);
+        return;
+    }
+    
+    // Export receipt as PDF
+    if (preg_match('#^/billing/receipts/(\d+)/pdf$#', $path, $m) && $method === 'GET') {
+        $billing->exportReceiptPDF((int)$m[1]);
+        return;
+    }
+    
+    // Charge management
+    if ($path === '/billing/charges/medications' && $method === 'POST') {
+        $billing->addMedicationCharge();
+        return;
+    }
+    
+    if ($path === '/billing/charges/services' && $method === 'POST') {
+        $billing->addServiceCharge();
+        return;
+    }
 
     // --- Fallback
     json_err('NOT_FOUND','No route',404,array('method'=>$method,'path'=>$path));

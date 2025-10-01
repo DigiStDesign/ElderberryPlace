@@ -1,6 +1,4 @@
 <?php
-// db.php — Loads DB credentials from .env and connects
-
 require_once __DIR__ . '/.env.php';
 
 try {
