@@ -29,9 +29,14 @@
         :headers="headers"
         :rows="rows"
         rowKey="id"
-        @edit="editRow"
-        @delete="deleteRow"
-      />
+      >
+        <template #cell-actions="{ row }">
+          <div class="action-buttons">
+            <button type="button" class="btn btn-sm" @click.prevent="editRow(row)">Edit</button>
+            <button type="button" class="btn btn-sm btn-danger" @click.prevent="deleteRow(row)">Delete</button>
+          </div>
+        </template>
+      </DataTable>
     </template>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -85,9 +90,9 @@ async function refresh() {
     }
 
     rows.value = items.map(r => {
-      const id = r.id ?? r.user_id ?? null
       return {
-        id,
+        id:         r.id ?? r.user_id ?? (r.user?.id) ?? (r.staff_profile?.user_id) ?? null,
+        edit_id:    r.user_id ?? r.id ?? (r.user?.id) ?? (r.staff_profile?.user_id) ?? null,
         username:   r.username ?? '',
         full_name:  r.full_name ?? '',
         email:      r.email ?? '',
@@ -107,7 +112,9 @@ async function refresh() {
 }
 
 function editRow(row) {
-  router.push(`/staff/${row.id}/edit`)
+  const id = row.edit_id ?? row.user_id ?? row.id
+  if (!id) return alert('No id to edit')
+  router.push(`/staff/${id}/edit`)
 }
 
 async function deleteRow(row) {
@@ -138,4 +145,9 @@ onMounted(refresh)
 .error { color:#b00; margin-top:8px; }
 .p-4 { padding: 16px; }
 .space-x-2 > * + * { margin-left: 8px; }
+
+.action-buttons { display: inline-flex; gap: 6px; }
+.btn-sm { padding: 4px 8px; font-size: 12px; }
+.btn-danger { background:#ef4444; color:#fff; border-color:#dc2626; }
+.btn-danger:hover { filter: brightness(0.95); }
 </style>

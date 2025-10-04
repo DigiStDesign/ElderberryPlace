@@ -1,5 +1,3 @@
-
-
 <template>
   <section style="max-width: 720px;">
     <h2>{{ isEdit ? 'Edit Service' : 'New Service' }}</h2>
@@ -29,16 +27,39 @@
         </div>
 
         <div>
-          <label>Rate (AUD)</label>
+          <label>Cost (AUD)</label>
           <input
-            v-model.trim="model.rate"
+            v-model.trim="model.cost"
             type="number"
             step="0.01"
             min="0"
-            :class="{'err': submitted && !rateOk}"
+            :class="{'err': submitted && !costOk}"
             placeholder="e.g., 79.95"
           />
-          <small v-if="submitted && !rateOk" class="help">Enter a valid non‑negative number</small>
+          <small v-if="submitted && !costOk" class="help">Enter a valid non‑negative number</small>
+        </div>
+
+        <div>
+          <label>Frequency</label>
+          <select v-model="model.frequency" :class="{'err': submitted && !model.frequency}">
+            <option disabled value="">Select frequency</option>
+            <option value="Daily">Daily</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Ad-hoc">Ad-hoc</option>
+          </select>
+          <small v-if="submitted && !model.frequency" class="help">Required</small>
+        </div>
+
+        <div>
+          <label>Status</label>
+          <select v-model="model.status" :class="{'err': submitted && !model.status}">
+            <option disabled value="">Select status</option>
+            <option value="Active">Active</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <small v-if="submitted && !model.status" class="help">Required</small>
         </div>
 
         <div style="grid-column: 1 / -1;">
@@ -73,8 +94,10 @@ const isEdit = computed(() => !!id)
 const model = reactive({
   name: '',
   category_id: '',
-  rate: '',
-  description: ''
+  cost: '',
+  description: '',
+  frequency: '',
+  status: ''
 })
 
 const categoryOptions = ref([])
@@ -84,9 +107,9 @@ const saved = ref(false)
 const loading = ref(false)
 const submitted = ref(false)
 
-const rateOk = computed(() => {
-  if (model.rate === '' || model.rate === null || model.rate === undefined) return false
-  const n = Number(model.rate)
+const costOk = computed(() => {
+  if (model.cost === '' || model.cost === null || model.cost === undefined) return false
+  const n = Number(model.cost)
   return !isNaN(n) && n >= 0
 })
 
@@ -111,8 +134,10 @@ async function loadEntity() {
       Object.assign(model, {
         name:        entity.name ?? '',
         category_id: entity.category_id ?? '',
-        rate:        entity.rate ?? '',
-        description: entity.description ?? ''
+        cost:        entity.cost ?? entity.rate ?? '',
+        description: entity.description ?? '',
+        frequency:   entity.frequency ?? '',
+        status:      entity.status ?? ''
       })
     }
   } catch (e) {
@@ -138,7 +163,7 @@ async function save() {
   error.value = ''
   saved.value = false
 
-  if (!model.name || !model.category_id || !rateOk.value) {
+  if (!model.name || !model.category_id || !costOk.value || !model.frequency || !model.status) {
     error.value = 'Please fix the highlighted fields'
     return
   }
@@ -148,8 +173,10 @@ async function save() {
     const payload = {
       name: model.name,
       category_id: model.category_id,
-      rate: Number(model.rate),
-      description: model.description
+      cost: Number(model.cost),
+      description: model.description,
+      frequency: model.frequency,
+      status: model.status
     }
     if (isEdit.value) {
       await Services.update(id, payload)

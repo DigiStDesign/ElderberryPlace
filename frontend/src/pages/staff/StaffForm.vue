@@ -112,9 +112,15 @@ async function load() {
   try {
     await loadJobs()
     if (!isEdit.value) return
-    const resp = await Staff.get(id)
+    const resp = await Staff.detail(id)
     const payload = resp?.data
-    const entity = (payload && payload.data) ? payload.data : payload
+    let entity = null
+    if (payload?.data?.item) entity = payload.data.item
+    else if (Array.isArray(payload?.data?.items)) entity = payload.data.items[0]
+    else if (Array.isArray(payload?.items)) entity = payload.items[0]
+    else if (Array.isArray(payload?.data)) entity = payload.data[0]
+    else if (Array.isArray(payload)) entity = payload[0]
+    else entity = payload?.data || payload
     if (entity && typeof entity === 'object') {
       Object.assign(model, {
         username:     entity.username ?? '',
