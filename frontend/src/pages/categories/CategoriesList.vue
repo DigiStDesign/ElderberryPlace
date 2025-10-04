@@ -1,8 +1,11 @@
 <template>
   <section class="p-4">
-    <header class="flex items-center justify-between mb-3">
-      <h1 class="text-xl font-semibold">Categories</h1>
-      <router-link class="btn btn-primary" to="/categories/new">New Category</router-link>
+    <header class="page-header">
+      <h1 class="page-title">Categories</h1>
+      <div class="header-actions">
+        <button type="button" class="btn btn-sm" @click="refresh">Refresh</button>
+        <router-link class="btn btn-sm btn-primary" to="/categories/new">New</router-link>
+      </div>
     </header>
 
     <!-- Filters -->
@@ -11,7 +14,7 @@
         <label class="lbl">Search</label>
         <input v-model.trim="q" @keyup.enter="refresh" class="input" placeholder="Name…" />
       </div>
-      <button class="btn" @click="refresh">Search</button>
+      <button class="btn btn-sm" @click="refresh">Search</button>
     </div>
 
     <div v-if="loading">Loading…</div>
@@ -23,9 +26,31 @@
         v-else
         :headers="headers"
         :rows="rows"
-        @edit="editRow"
-        @delete="deleteRow"
-      />
+        rowKey="id"
+      >
+        <template #cell-actions="{ row }">
+          <div class="action-buttons">
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              :disabled="!row.id"
+              :title="row.id ? 'Edit category' : 'Missing id'"
+              @click.prevent="editRow(row)"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-danger"
+              :disabled="!row.id"
+              :title="row.id ? 'Delete category' : 'Missing id'"
+              @click.prevent="deleteRow(row)"
+            >
+              Delete
+            </button>
+          </div>
+        </template>
+      </DataTable>
     </template>
 
     <p v-if="error" style="color:#b00; margin-top:8px;">{{ error }}</p>
@@ -56,8 +81,20 @@ async function refresh() {
   loading.value = true
   try {
     const resp = await Categories.list({ search: q.value || undefined })
-    const payload = resp?.data
-    rows.value = Array.isArray(payload) ? payload : (payload?.data ?? [])
+    const d = resp?.data
+    const items = Array.isArray(d) ? d
+      : Array.isArray(d?.data) ? d.data
+      : Array.isArray(d?.items) ? d.items
+      : Array.isArray(d?.records) ? d.records
+      : []
+    rows.value = items.map((c) => {
+      const id = c.id ?? c.category_id ?? c.ID ?? null
+      return {
+        id: id,
+        name: c.name ?? c.category_name ?? '',
+        description: c.description ?? c.details ?? ''
+      }
+    })
   } catch (e) {
     console.error(e)
     error.value = 'Failed to load categories'
@@ -68,7 +105,43 @@ async function refresh() {
 }
 
 function editRow(row) {
-  router.push(`/categories/${row.id}/edit`)
+  if (!row?.id) {
+    console.warn('[CategoriesList] Missing id for row:', row)
+    alert('Cannot edit: missing category id from API.')
+    return
+  }
+  const id = String(row.id)
+
+  // 1) Prefer named routes if they exist
+  try {
+    if (router.hasRoute && router.hasRoute('CategoryEdit')) {
+      router.push({ name: 'CategoryEdit', params: { id } })
+      return
+    }
+    if (router.hasRoute && router.hasRoute('CategoriesEdit')) {
+      router.push({ name: 'CategoriesEdit', params: { id } })
+      return
+    }
+  } catch (_) { /* ignore and try fallbacks */ }
+
+  // 2) Try common path patterns used in this project
+  const candidates = [
+    `/categories/${id}/edit`,
+    `/category/${id}/edit`,
+    { path: '/categories/edit', query: { id } },
+    { path: '/category/edit',   query: { id } },
+  ]
+
+  for (const target of candidates) {
+    try {
+      router.push(target)
+      return
+    } catch (e) {
+      console.warn('[CategoriesList] navigation attempt failed for', target, e)
+    }
+  }
+
+  alert('Could not navigate to the edit page. Check your router for a CategoryEdit route or one of: /categories/:id/edit, /categories/edit?id=, /category/:id/edit, /category/edit?id=')
 }
 
 async function deleteRow(row) {
@@ -90,6 +163,18 @@ onMounted(refresh)
 </script>
 
 <style scoped>
+.page-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+}
+.page-title {
+  font-size:20px;
+  font-weight:600;
+}
+.header-actions { display:flex; gap:8px; }
+
 .filters {
   display:flex;
   align-items:flex-end;
@@ -104,16 +189,52 @@ onMounted(refresh)
   border-radius:4px;
   min-width:220px;
 }
+
+/* Buttons — mirror Residents page look */
 .btn {
   padding:6px 10px;
   border:1px solid #e5e7eb;
   border-radius:4px;
   background:#f9fafb;
   cursor:pointer;
+  line-height:1.1;
+  user-select:none;
+}
+.btn:hover { background:#f3f4f6; }
+.btn-sm {
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:4px;
 }
 .btn-primary {
   background:#2563eb;
-  color:white;
+  color:#fff;
   border-color:#1d4ed8;
 }
+.btn-primary:hover { filter:brightness(0.95); }
+.btn-danger { background:#ef4444; color:#fff; border-color:#dc2626; }
+.btn-danger:hover { filter:brightness(0.95); }
+
+.action-buttons { display:inline-flex; gap:6px; }
+
+/* Ensure slot buttons in DataTable aren't overridden by table styles */
+:deep(.data-table) .btn,
+:deep(.data-table) .btn-sm,
+:deep(.data-table) .btn-primary,
+:deep(.data-table) .btn-danger {
+  all: unset;
+  display:inline-block;
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:4px;
+  border:1px solid #e5e7eb;
+  background:#f9fafb;
+  color:#111827;
+  line-height:1.1;
+  cursor:pointer;
+}
+:deep(.data-table) .btn-primary { background:#2563eb; color:#fff; border-color:#1d4ed8; }
+:deep(.data-table) .btn-danger { background:#ef4444; color:#fff; border-color:#dc2626; }
 </style>
+
+.btn[disabled], .btn:disabled { opacity: 0.5; cursor: not-allowed; }

@@ -44,9 +44,10 @@ const headers = [
   { key: 'id', label: 'ID' },
   { key: 'visitor_name', label: 'Visitor' },
   { key: 'resident_name', label: 'Resident' },
-  { key: 'check_in_at', label: 'Check-in' },
-  { key: 'check_out_at', label: 'Check-out' },
-  { key: 'purpose', label: 'Purpose' },
+  { key: 'requested_start', label: 'Requested Start' },
+  { key: 'requested_end', label: 'Requested End' },
+  { key: 'status', label: 'Status' },
+  { key: 'notes', label: 'Notes' },
   { key: 'actions', label: 'Actions' }
 ]
 
@@ -61,7 +62,20 @@ async function refresh() {
   try {
     const resp = await Visits.list({ search: q.value || undefined })
     const payload = resp?.data
-    rows.value = Array.isArray(payload) ? payload : (payload?.data ?? [])
+    const items = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : []
+    rows.value = items.map((v, i) => ({
+      id: v.id ?? i + 1,
+      visitor_name: v.visitor_name ?? v.visitor_full_name ?? v.visitor ?? '',
+      resident_name: v.resident_name ?? v.resident_full_name ?? v.resident ?? '',
+      requested_start: v.requested_start ?? '',
+      requested_end: v.requested_end ?? '',
+      status: v.status ?? 'PENDING',
+      notes: v.notes ?? ''
+    }))
   } catch (e) {
     console.error(e)
     error.value = 'Failed to load visits'

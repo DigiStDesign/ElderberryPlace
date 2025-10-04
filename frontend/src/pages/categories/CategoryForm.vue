@@ -1,5 +1,3 @@
-
-
 <template>
   <section style="max-width: 640px;">
     <h2>{{ isEdit ? 'Edit Category' : 'New Category' }}</h2>
@@ -24,8 +22,8 @@
       </div>
 
       <div style="margin-top:12px; display:flex; gap:8px;">
-        <button type="submit" :disabled="loading">{{ isEdit ? 'Update' : 'Create' }}</button>
-        <button type="button" @click="goBack" :disabled="loading">Cancel</button>
+        <button type="submit" class="btn btn-primary" :disabled="loading">{{ isEdit ? 'Update' : 'Create' }}</button>
+        <button type="button" class="btn" @click="goBack" :disabled="loading">Cancel</button>
       </div>
 
       <p v-if="error" style="color:#b00; margin-top:8px;">{{ error }}</p>
@@ -35,20 +33,32 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, computed } from 'vue'
+import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Categories from '@/api/categories'
 
 const route = useRoute()
 const router = useRouter()
 
-const id = route.params.id
-const isEdit = computed(() => !!id)
+function getRouteId(r) {
+  // Prefer query (?id=123) used by /categories/edit, fall back to params (/categories/:id/edit)
+  return (r?.query?.id ?? r?.params?.id ?? '')
+}
+
+const id = ref(String(getRouteId(route) || ''))
+const isEdit = computed(() => /^\d+$/.test(id.value))
 
 const model = reactive({
   name: '',
   description: ''
 })
+
+function resetForm() {
+  Object.assign(model, { name: '', description: '' })
+  error.value = ''
+  saved.value = false
+  submitted.value = false
+}
 
 const error = ref('')
 const saved = ref(false)
@@ -60,7 +70,9 @@ async function load() {
   error.value = ''
   loading.value = true
   try {
-    const resp = await Categories.get(id)
+    // defensive: ensure numeric id string
+    const catId = String(id.value)
+    const resp = await Categories.get(catId)
     const payload = resp?.data
     const entity = (payload && payload.data) ? payload.data : payload
     if (entity && typeof entity === 'object') {
@@ -94,7 +106,7 @@ async function save() {
       description: model.description
     }
     if (isEdit.value) {
-      await Categories.update(id, payload)
+      await Categories.update(id.value, payload)
     } else {
       await Categories.create(payload)
     }
@@ -114,6 +126,17 @@ function goBack() {
 }
 
 onMounted(load)
+// React when navigating between /categories/new and /categories/:id/edit within the same component instance
+watch(
+  () => [route.query.id, route.params.id],
+  ([qId, pId]) => {
+    id.value = String(qId ?? pId ?? '')
+    resetForm()
+    if (isEdit.value) {
+      load()
+    }
+  }
+)
 </script>
 
 <style scoped>
@@ -132,4 +155,9 @@ label {
 textarea { resize: vertical; }
 .help { color:#b00; font-size:12px; }
 .err { border-color:#dc2626; outline-color:#dc2626; }
+
+.btn { padding:8px 10px; border:1px solid #e5e7eb; border-radius:4px; background:#f9fafb; cursor:pointer; }
+.btn[disabled] { opacity:0.6; cursor:not-allowed; }
+.btn-primary { background:#2563eb; color:#fff; border-color:#1d4ed8; }
+.btn-primary:hover { filter:brightness(0.97); }
 </style>

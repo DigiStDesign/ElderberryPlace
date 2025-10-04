@@ -1,5 +1,3 @@
-
-
 <template>
   <section style="max-width: 760px;">
     <h2>{{ isEdit ? 'Edit Visit' : 'New Visit' }}</h2>
@@ -9,35 +7,35 @@
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
         <div>
           <label>Resident</label>
-          <select v-model="model.resident_id" :class="{'err': submitted && !model.resident_id}">
+          <select v-model="model.resident_user_id" :class="{'err': submitted && !model.resident_user_id}">
             <option :value="''" disabled>Select resident</option>
             <option v-for="r in residentOptions" :key="r.id" :value="r.id">
               {{ r.first_name }} {{ r.last_name }} (Room {{ r.room_no || '—' }})
             </option>
           </select>
-          <small v-if="submitted && !model.resident_id" class="help">Required</small>
+          <small v-if="submitted && !model.resident_user_id" class="help">Required</small>
         </div>
 
         <div>
           <label>Visitor</label>
-          <select v-model="model.visitor_id" :class="{'err': submitted && !model.visitor_id}">
+          <select v-model="model.visitor_user_id" :class="{'err': submitted && !model.visitor_user_id}">
             <option :value="''" disabled>Select visitor</option>
             <option v-for="v in visitorOptions" :key="v.id" :value="v.id">
               {{ v.full_name }} — {{ v.phone || 'no phone' }}
             </option>
           </select>
-          <small v-if="submitted && !model.visitor_id" class="help">Required</small>
+          <small v-if="submitted && !model.visitor_user_id" class="help">Required</small>
         </div>
 
         <div>
-          <label>Check-in</label>
-          <input type="datetime-local" v-model="model.check_in_at" :class="{'err': submitted && !model.check_in_at}" />
-          <small v-if="submitted && !model.check_in_at" class="help">Required</small>
+          <label>Requested Start</label>
+          <input type="datetime-local" v-model="model.requested_start" :class="{'err': submitted && !model.requested_start}" />
+          <small v-if="submitted && !model.requested_start" class="help">Required</small>
         </div>
 
         <div>
-          <label>Check-out (optional)</label>
-          <input type="datetime-local" v-model="model.check_out_at" />
+          <label>Requested End (optional)</label>
+          <input type="datetime-local" v-model="model.requested_end" />
         </div>
 
         <div style="grid-column: 1 / -1;">
@@ -76,10 +74,10 @@ const id = route.params.id
 const isEdit = computed(() => !!id)
 
 const model = reactive({
-  resident_id: '',
-  visitor_id: '',
-  check_in_at: '',
-  check_out_at: '',
+  resident_user_id: '',
+  visitor_user_id: '',
+  requested_start: '',
+  requested_end: '',
   purpose: '',
   notes: ''
 })
@@ -117,12 +115,12 @@ async function loadEntity() {
     const entity = (payload && payload.data) ? payload.data : payload
     if (entity && typeof entity === 'object') {
       Object.assign(model, {
-        resident_id: entity.resident_id ?? '',
-        visitor_id:  entity.visitor_id ?? '',
-        check_in_at: (entity.check_in_at || '').slice(0,16), // expect ISO; trim seconds/zone for input
-        check_out_at:(entity.check_out_at || '').slice(0,16),
-        purpose:     entity.purpose ?? '',
-        notes:       entity.notes ?? ''
+        resident_user_id: entity.resident_user_id ?? '',
+        visitor_user_id:  entity.visitor_user_id ?? '',
+        requested_start:  (entity.requested_start || '').slice(0,16),
+        requested_end:    (entity.requested_end || '').slice(0,16),
+        purpose:          entity.purpose ?? '',
+        notes:            entity.notes ?? ''
       })
     }
   } catch (e) {
@@ -148,7 +146,7 @@ async function save() {
   error.value = ''
   saved.value = false
 
-  if (!model.resident_id || !model.visitor_id || !model.check_in_at) {
+  if (!model.resident_user_id || !model.visitor_user_id || !model.requested_start) {
     error.value = 'Please fill the required fields'
     return
   }
@@ -156,12 +154,12 @@ async function save() {
   loading.value = true
   try {
     const payload = {
-      resident_id: model.resident_id,
-      visitor_id:  model.visitor_id,
-      check_in_at: model.check_in_at ? new Date(model.check_in_at).toISOString() : null,
-      check_out_at:model.check_out_at ? new Date(model.check_out_at).toISOString() : null,
-      purpose:     model.purpose,
-      notes:       model.notes
+      resident_user_id: model.resident_user_id,
+      visitor_user_id:  model.visitor_user_id,
+      requested_start:  model.requested_start ? new Date(model.requested_start).toISOString().slice(0, 19).replace('T', ' ') : null,
+      requested_end:    model.requested_end ? new Date(model.requested_end).toISOString().slice(0, 19).replace('T', ' ') : null,
+      purpose:          model.purpose,
+      notes:            model.notes
     }
     if (isEdit.value) {
       await Visits.update(id, payload)

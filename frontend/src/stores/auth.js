@@ -20,7 +20,9 @@ export const useAuthStore = defineStore('auth', {
     async init() {
       try {
         const response = await AuthAPI.me()
-        const user = response.user || response
+        const root = response || {}
+        const data = root?.data || root
+        const user = data?.user || data
         if (user) {
           // Save user to state and localStorage
           this.user = user
@@ -50,17 +52,19 @@ export const useAuthStore = defineStore('auth', {
      */
     async login({ username, password }) {
       const response = await AuthAPI.login({ username, password })
-      const user = response.user || response
+      const root = response || {}
+      const data = root?.data || root
+      const user = data?.user || data
       if (!user) {
         throw new Error(`Login failed: no user returned, response: ${JSON.stringify(response)}`)
       }
       // Save user to state and localStorage
       this.user = user
-      if (response.csrf) {
-        // Save csrf to state, global, and localStorage if present
-        this.csrf = response.csrf
-        window.__CSRF = response.csrf
-        localStorage.setItem('csrf', response.csrf)
+      if (data.csrf || response.csrf) {
+        const token = data.csrf || response.csrf
+        this.csrf = token
+        window.__CSRF = token
+        localStorage.setItem('csrf', token)
       }
       localStorage.setItem('user', JSON.stringify(user))
     },
