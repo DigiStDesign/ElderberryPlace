@@ -109,8 +109,10 @@ function route_v1($method, $path) {
     if ($method === 'GET'  && $path === '/me/resident/services')       { Sched_my_services();    return; } // RESIDENT
     if ($method === 'GET'  && $path === '/me/roster')                  { Sched_my_roster();      return; } // STAFF
 
-    /** ---------- Medication catalogue ---------- */
-    if ($method === 'GET' && $path === '/medications') { Meds_list(); return; }
+/** ---------- Medication catalogue ---------- */
+if ($method === 'GET'  && $path === '/medications') { Meds_list();   return; }
+if ($method === 'POST' && $path === '/medications') { Meds_create(); return; } // <-- add this line
+
 
     /** ---------- Prescriptions ---------- */
     if (preg_match('#^/residents/(\d+)/prescriptions$#', $path, $m)) {

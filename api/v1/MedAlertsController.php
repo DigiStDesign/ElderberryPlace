@@ -5,7 +5,7 @@ require_once __DIR__ . '/../lib/db_api.php';
 
 /** GET /v1/med-alerts?state=open&resident_id=&type= */
 function MedAlerts_list() {
-  require_staff_api();
+         require_role_api(array('ADMIN', 'STAFF'));
   $pdo = api_db();
 
   $where = ["1=1"]; $args = [];
@@ -52,8 +52,7 @@ function MedAlerts_list() {
 
 /** PATCH /v1/med-alerts/{id} body: { state:"resolved"| "open", resolved_by:<userId> } */
 function MedAlerts_update($id) {
-  require_staff_api();
-  $b = read_json();
+        require_role_api(array('ADMIN', 'STAFF'));  $b = read_json();
 
   $state = isset($b['state']) ? $b['state'] : 'resolved';
   if (!in_array($state, ['open','resolved'], true)) {

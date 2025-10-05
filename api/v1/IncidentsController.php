@@ -18,7 +18,7 @@ function _inc_allowed($val, array $allowed) {
  *   page?=1  limit?=50   (limit capped 1..100)
  */
 function Incidents_list() {
-  require_staff_api();
+  if (function_exists('require_staff_or_admin_api')) require_staff_or_admin_api(); else require_staff_api();
   $pdo = api_db();
 
   $allowedTypes    = ['medication','fall','behaviour','infection','other'];
@@ -84,7 +84,7 @@ function Incidents_list() {
  *  }
  */
 function Incidents_create() {
-  require_staff_api();
+        require_role_api(array('ADMIN', 'STAFF'));
   $b = read_json();
 
   $allowedTypes    = ['medication','fall','behaviour','infection','other'];

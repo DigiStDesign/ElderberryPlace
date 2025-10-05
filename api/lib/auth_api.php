@@ -32,6 +32,8 @@ function require_role_api($roles) {
 // convenience
 function require_admin_api() { require_role_api('ADMIN'); }
 
+
+
 // CSRF: require for unsafe methods
 function require_csrf_api() {
     api_start_session();

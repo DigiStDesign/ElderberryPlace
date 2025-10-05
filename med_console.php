@@ -13,7 +13,7 @@ renderHeader('Medication Console');
       <button class="btn" :class="tab==='mar'  ? 'btn--primary':'btn--secondary'" @click="tab='mar'">Due</button>
       <button class="btn" :class="tab==='alerts' ? 'btn--primary':'btn--secondary'" @click="tab='alerts'">Alerts</button>
 
-      <!-- shared resident picker for Rx & MAR (and optional for alerts) -->
+      <!-- shared resident picker for Rx & MAR -->
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <label style="display:flex;gap:6px;align-items:center;">
           <span class="muted">Resident</span>
@@ -25,10 +25,19 @@ renderHeader('Medication Console');
       </div>
     </nav>
 
-    <!-- ============ Medications (search) ============ -->
+    <!-- Permission banner (403s from require_staff_api) -->
+    <div v-if="permErr" class="card" style="border-color:#f5c2c7;color:#b00020;margin-top:12px;">
+      {{ permErr }}
+      <div class="muted" style="margin-top:6px;">
+        Tip: log in as a Staff user (e.g. username <strong>staff</strong>) if these endpoints require STAFF.
+      </div>
+    </div>
+
+    <!-- ============ Medications (search + create + delete) ============ -->
     <section v-show="tab==='meds'" style="margin-top:14px;">
+      <!-- Search -->
       <form @submit.prevent="meds_load" class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-        <input v-model.trim="meds.q" placeholder="Search name…" style="flex:1;min-width:220px;">
+        <input v-model.trim="meds.q" placeholder="Search name… (blank = all)" style="flex:1;min-width:220px;">
         <input v-model.trim="meds.form" placeholder="Form (e.g., tablet)">
         <input v-model.trim="meds.strength" placeholder="Strength (e.g., 500 mg)">
         <input v-model.number="meds.limit" type="number" min="1" max="100" title="limit" style="width:92px">
@@ -37,9 +46,15 @@ renderHeader('Medication Console');
 
       <div v-if="meds.err" class="card" style="border-color:#f5c2c7;color:#b00020;">{{ meds.err }}</div>
 
+      <!-- Results -->
       <div class="card" style="overflow:auto;">
         <table class="table">
-          <thead><tr><th>ID</th><th>Generic</th><th>Brand</th><th>Form</th><th>Strength</th></tr></thead>
+          <thead>
+            <tr>
+              <th>ID</th><th>Generic</th><th>Brand</th><th>Form</th><th>Strength</th>
+              <th style="width:120px;">Action</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="m in meds.rows" :key="m.id">
               <td class="num">{{ m.id }}</td>
@@ -47,20 +62,55 @@ renderHeader('Medication Console');
               <td>{{ m.brand_name }}</td>
               <td>{{ m.form }}</td>
               <td>{{ m.strength }}</td>
+              <td>
+                <button class="btn btn--secondary"
+                        @click="meds_delete(m)"
+                        :disabled="deletingMedId===m.id">
+                  {{ deletingMedId===m.id ? 'Deleting…' : 'Delete' }}
+                </button>
+              </td>
             </tr>
-            <tr v-if="meds.rows.length===0"><td colspan="5" class="muted">No results.</td></tr>
+            <tr v-if="meds.rows.length===0"><td colspan="6" class="muted">No results.</td></tr>
           </tbody>
         </table>
       </div>
 
+      <!-- Pager -->
       <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;">
         <button class="btn btn--secondary" :disabled="meds.page<=1" @click="meds.page--; meds_load()">Prev</button>
         <span>Page {{ meds.page }}</span>
         <button class="btn btn--secondary" :disabled="meds.rows.length<meds.limit" @click="meds.page++; meds_load()">Next</button>
       </div>
+
+      <!-- Add new medication -->
+      <h3 style="margin:20px 0 8px;">Add medication</h3>
+      <div class="card">
+        <form @submit.prevent="meds_create" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <input v-model.trim="medsCreate.generic_name"
+                 placeholder="Generic name (e.g., Paracetamol)" required
+                 style="grid-column:1 / -1">
+
+          <input v-model.trim="medsCreate.brand_name"
+                 placeholder="Brand (optional, e.g., Panadol)">
+
+          <div style="display:flex;gap:10px;">
+            <input v-model.trim="medsCreate.form"
+                   placeholder="Form (e.g., tablet)" required style="flex:1">
+            <input v-model.trim="medsCreate.strength"
+                   placeholder="Strength (e.g., 500 mg)" required style="flex:1">
+          </div>
+
+          <div style="grid-column:1 / -1;display:flex;gap:8px;align-items:center;">
+            <button class="btn btn--primary" :disabled="creatingMed">Create</button>
+            <button class="btn" type="button" :disabled="creatingMed" @click="meds_resetCreate">Cancel</button>
+            <span class="muted" v-if="medsMsg">{{ medsMsg }}</span>
+            <span style="color:#b00020" v-if="medsErrAdd">{{ medsErrAdd }}</span>
+          </div>
+        </form>
+      </div>
     </section>
 
-    <!-- ============ Prescriptions (list + create) ============ -->
+    <!-- ============ Prescriptions (list + create + cancel) ============ -->
     <section v-show="tab==='rx'" style="margin-top:14px;">
       <div v-if="rx.err" class="card" style="border-color:#f5c2c7;color:#b00020;">{{ rx.err }}</div>
 
@@ -69,16 +119,29 @@ renderHeader('Medication Console');
         <table class="table">
           <thead>
             <tr>
-              <th>Medication</th><th>Dose</th><th>Route</th><th>PRN</th><th>Freq</th><th>Start</th><th>End</th><th>Status</th>
+              <th>Medication</th><th>Dose</th><th>Route</th><th>PRN</th><th>Freq</th>
+              <th>Start</th><th>End</th><th>Status</th>
+              <th style="width:130px;">Action</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="r in rx.rows" :key="r.id">
-              <td><strong>{{ r.generic_name }}</strong><div class="muted">{{ r.brand_name }} • {{ r.form }} {{ r.strength }}</div></td>
+              <td>
+                <strong>{{ r.generic_name }}</strong>
+                <div class="muted">{{ r.brand_name }} • {{ r.form }} {{ r.strength }}</div>
+              </td>
               <td>{{ r.dose }}</td><td>{{ r.route || '-' }}</td><td>{{ r.prn ? 'Yes':'No' }}</td>
-              <td>{{ r.frequency }}</td><td>{{ r.start_date }}</td><td>{{ r.end_date || '' }}</td><td>{{ r.status }}</td>
+              <td>{{ r.frequency }}</td><td>{{ r.start_date }}</td><td>{{ r.end_date || '' }}</td>
+              <td>{{ r.status }}</td>
+              <td>
+                <button class="btn btn--secondary"
+                        @click="rx_cancel(r)"
+                        :disabled="cancellingRxId===r.id || r.status==='cancelled' || r.status==='stopped'">
+                  {{ cancellingRxId===r.id ? 'Cancelling…' : (r.status==='cancelled' || r.status==='stopped' ? 'Cancelled' : 'Cancel') }}
+                </button>
+              </td>
             </tr>
-            <tr v-if="rx.rows.length===0"><td colspan="8" class="muted">No prescriptions.</td></tr>
+            <tr v-if="rx.rows.length===0"><td colspan="9" class="muted">No prescriptions.</td></tr>
           </tbody>
         </table>
       </div>
@@ -230,12 +293,18 @@ Vue.createApp({
   data:function(){
     var r=todayRange();
     return {
-      tab:'rx',                 // default tab
+      tab:'meds',
       residents:[], residentId:null,
       meId:null,
+      permErr:'',
 
-      // Medications
+      // Medications (list/search)
       meds:{ q:'', form:'', strength:'', limit:50, page:1, rows:[], err:'' },
+
+      // Medications (create)
+      medsCreate:{ generic_name:'', brand_name:'', form:'', strength:'' },
+      creatingMed:false, medsMsg:'', medsErrAdd:'',
+      deletingMedId:null,
 
       // Prescriptions
       rx:{
@@ -245,6 +314,7 @@ Vue.createApp({
         form:{ medication_id:null, dose:'', route:'', prn:false, frequency:'', start_date:'', end_date:'', max_daily_dose:'', instructions:'', prescriber:'' },
         timesText:''
       },
+      cancellingRxId:null,
 
       // MAR
       mar:{ from:r.from, to:r.to, rows:[], err:'', msg:'', panel:null,
@@ -279,7 +349,7 @@ Vue.createApp({
   methods:{
     /* ---------- boot ---------- */
     boot: async function(){
-      await window.apiGetCsrf();
+      if (window.apiGetCsrf) { try { await window.apiGetCsrf(); } catch(e){} }
       try{
         var rr=await apiGet('/residents'); var dd=rr.data&&rr.data.data?rr.data.data:rr.data;
         this.residents = dd.items?dd.items:dd;
@@ -290,7 +360,7 @@ Vue.createApp({
         this.meId = md && md.user ? md.user.id : null;
       }catch(e){}
       // initial loads
-      this.rx_load(); this.mar_load(); this.meds_load(); this.alerts_load();
+      this.meds_load(); this.rx_load(); this.mar_load(); this.alerts_load();
     },
 
     reloadCurrent:function(){
@@ -300,26 +370,97 @@ Vue.createApp({
       if(this.tab==='alerts') this.alerts_load();
     },
 
-    /* ---------- Medications ---------- */
+    /* ---------- Medications: list ---------- */
     meds_load: async function(){
       try{
-        this.meds.err='';
-        var p={ q:this.meds.q, form:this.meds.form, strength:this.meds.strength, limit:this.meds.limit, page:this.meds.page };
+        this.meds.err=''; this.permErr='';
+        var p={ limit:this.meds.limit, page:this.meds.page };
+        if (this.meds.q)        p.q        = this.meds.q;
+        if (this.meds.form)     p.form     = this.meds.form;
+        if (this.meds.strength) p.strength = this.meds.strength;
+
         var r=await apiGet('/medications', p);
         var d=r.data&&r.data.data?r.data.data:r.data;
         this.meds.rows=(d&&d.items)?d.items:[];
-      }catch(e){ this.meds.err=this.msgFrom(e); }
+      }catch(e){
+        var msg=this.msgFrom(e);
+        if (e && e.response && (e.response.status===401 || e.response.status===403)) this.permErr=msg;
+        else this.meds.err=msg;
+      }
+    },
+
+    /* ---------- Medications: create ---------- */
+    meds_create: async function(){
+      this.medsMsg=''; this.medsErrAdd='';
+      if (!this.meds_createIsValid()){
+        this.medsErrAdd='generic_name, form and strength are required.'; return;
+      }
+      try{
+        this.creatingMed=true;
+        await apiPost('/medications', this.meds_createPayload());
+        this.medsMsg='Created.';
+        this.meds_resetCreate();
+        await this.meds_load();
+      }catch(e){
+        var m=this.msgFrom(e);
+        if ((m||'').toLowerCase().match(/duplicate|exists|409/)){
+          m='Medication already exists (generic + form + strength must be unique).';
+        }
+        this.medsErrAdd=m;
+      }finally{
+        this.creatingMed=false;
+      }
+    },
+    meds_createIsValid:function(){
+      var f=this.medsCreate;
+      return !!(f.generic_name && f.form && f.strength);
+    },
+    meds_createPayload:function(){
+      var f=this.medsCreate;
+      return {
+        generic_name: f.generic_name,
+        brand_name:   f.brand_name || null,
+        form:         f.form,
+        strength:     f.strength
+      };
+    },
+    meds_resetCreate:function(){
+      this.medsCreate={ generic_name:'', brand_name:'', form:'', strength:'' };
+      this.medsErrAdd=''; this.medsMsg='';
+    },
+
+    /* ---------- Medications: delete ---------- */
+    meds_delete: async function(m){
+      if (!confirm('Delete "'+m.generic_name+'" '+(m.form||'')+' '+(m.strength||'')+'?')) return;
+      this.deletingMedId = m.id;
+      try{
+        await apiDelete('/medications/'+m.id);
+        if (this.meds.rows.length === 1 && this.meds.page > 1) this.meds.page--;
+        await this.meds_load();
+      }catch(e){
+        var msg = this.msgFrom(e);
+        if (/in use|foreign key|1451|conflict|409/i.test(msg)) {
+          msg = 'Cannot delete: medication is in use by prescriptions.';
+        }
+        alert(msg);
+      }finally{
+        this.deletingMedId = null;
+      }
     },
 
     /* ---------- Prescriptions ---------- */
     rx_load: async function(){
       if(!this.residentId) return;
       try{
-        this.rx.err='';
+        this.rx.err=''; this.permErr='';
         var r=await apiGet('/residents/'+this.residentId+'/prescriptions');
         var d=r.data&&r.data.data?r.data.data:r.data;
         this.rx.rows=d.items?d.items:[];
-      }catch(e){ this.rx.err=this.msgFrom(e); }
+      }catch(e){
+        var msg=this.msgFrom(e);
+        if (e && e.response && (e.response.status===401 || e.response.status===403)) this.permErr=msg;
+        else this.rx.err=msg;
+      }
     },
     rx_pickMed:function(m){
       this.rx.form.medication_id=m.id;
@@ -343,21 +484,54 @@ Vue.createApp({
         await apiPost('/residents/'+this.residentId+'/prescriptions', body);
         this.rx.msg='Created.';
         this.rx.form={ medication_id:null, dose:'', route:'', prn:false, frequency:'', start_date:'', end_date:'', max_daily_dose:'', instructions:'', prescriber:'' };
-        this.rx.selectedMed=null;
-        this.rx.timesText='';
+        this.rx.selectedMed=null; this.rx.timesText='';
         await this.rx_load();
       }catch(e){ this.rx.err=this.msgFrom(e); }
+    },
+
+    // Cancel prescription (tries PATCH, then POST /cancel, then DELETE)
+    rx_cancel: async function(r){
+      if (!confirm('Cancel this prescription?\n'+r.generic_name+' • '+(r.form||'')+' '+(r.strength||'')+'\nDose: '+r.dose+'  Freq: '+r.frequency)) return;
+
+      this.cancellingRxId = r.id;
+      try{
+        // Try PATCH /prescriptions/{id} {status:'cancelled'}
+        try {
+          await apiPatch('/prescriptions/'+r.id, { status:'cancelled' });
+        } catch (e1) {
+          var isNoRoute = e1 && e1.response && e1.response.data && /no route|not[_ ]?found|404/i.test(String(e1.response.data.error && e1.response.data.error.message || ''));
+          if (!isNoRoute) throw e1;
+          // Try POST /prescriptions/{id}/cancel
+          try {
+            await apiPost('/prescriptions/'+r.id+'/cancel', {});
+          } catch (e2) {
+            var isNoRoute2 = e2 && e2.response && e2.response.data && /no route|not[_ ]?found|404/i.test(String(e2.response.data.error && e2.response.data.error.message || ''));
+            if (!isNoRoute2) throw e2;
+            // Last resort: DELETE /prescriptions/{id}
+            await apiDelete('/prescriptions/'+r.id);
+          }
+        }
+        await this.rx_load();
+      }catch(e){
+        alert(this.msgFrom(e));
+      }finally{
+        this.cancellingRxId = null;
+      }
     },
 
     /* ---------- MAR ---------- */
     mar_load: async function(){
       if(!this.residentId) return;
       try{
-        this.mar.err='';
+        this.mar.err=''; this.permErr='';
         var r=await apiGet('/residents/'+this.residentId+'/med-due',{from:this.mar.from,to:this.mar.to});
         var d=r.data&&r.data.data?r.data.data:r.data;
         this.mar.rows=(d&&d.items)?d.items:[];
-      }catch(e){ this.mar.err=this.msgFrom(e); }
+      }catch(e){
+        var msg=this.msgFrom(e);
+        if (e && e.response && (e.response.status===401 || e.response.status===403)) this.permErr=msg;
+        else this.mar.err=msg;
+      }
     },
     mar_open:function(it){ this.mar.msg=''; this.mar.adm={ outcome:'given', dose_given:'', notes:'', witness_user_id:null }; this.mar.panel=it; },
     mar_submit: async function(){
@@ -377,13 +551,17 @@ Vue.createApp({
     /* ---------- Alerts ---------- */
     alerts_load: async function(){
       try{
-        this.alerts.err='';
+        this.alerts.err=''; this.permErr='';
         var p={}; if(this.alerts.state) p.state=this.alerts.state; if(this.alerts.type) p.type=this.alerts.type;
         if(this.alerts.resident_id) p.resident_id=this.alerts.resident_id;
         var r=await apiGet('/med-alerts', p);
         var d=r.data&&r.data.data?r.data.data:r.data;
         this.alerts.rows=(d&&d.items)?d.items:[];
-      }catch(e){ this.alerts.err=this.msgFrom(e); }
+      }catch(e){
+        var msg=this.msgFrom(e);
+        if (e && e.response && (e.response.status===401 || e.response.status===403)) this.permErr=msg;
+        else this.alerts.err=msg;
+      }
     },
     alerts_toggle: async function(a){
       try{

@@ -1,6 +1,6 @@
 /* =========================================================
    Elderberry Place – Global Styles
-   Clean header: brand (left) | links (center) | search (right)
+   Three-lane header: brand (left) | links (center) | search (right)
 ========================================================= */
 
 /* -------------------- Variables -------------------- */
@@ -15,12 +15,17 @@
   --grey-600:#E5E7EB;
   --maxw:1140px;
   --radius:12px;
+  --nav-gap:16px;
   --control-h:40px;
 }
 
 /* -------------------- Base & Type -------------------- */
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;overflow-x:hidden;height:100%}
+html,body{
+  margin:0; padding:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:#111; overflow-x:hidden; height:100%;
+}
 h1,h2{overflow-wrap:anywhere}
 h1{font-size:clamp(1.6rem,2.5vw,2.2rem);margin:0 0 12px}
 h2{font-size:clamp(1.3rem,2vw,1.6rem);margin:18px 0 10px}
@@ -32,11 +37,17 @@ p{margin:0 0 1rem}
 .container{max-width:var(--maxw);margin:0 auto;padding:24px 20px}
 .section{padding:32px 0}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-.card{background:#fff;border:1px solid var(--grey-600);border-radius:16px;padding:20px;box-shadow:0 4px 10px rgba(0,0,0,.05)}
+.card{
+  background:#fff;border:1px solid var(--grey-600);
+  border-radius:16px;padding:20px;box-shadow:0 4px 10px rgba(0,0,0,.05);
+}
 
 /* -------------------- Accessibility -------------------- */
 .skip-link{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
-.skip-link:focus{position:fixed;left:12px;top:12px;background:var(--blue);color:#fff;padding:8px 12px;border-radius:6px;z-index:2000}
+.skip-link:focus{
+  position:fixed;left:12px;top:12px;background:var(--blue);color:#fff;
+  padding:8px 12px;border-radius:6px;z-index:2000;
+}
 
 /* -------------------- Buttons -------------------- */
 .btn{
@@ -59,81 +70,76 @@ button:focus-visible,.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--
 .btn--muted{background:#f4f6fa;color:#213547;border:2px solid var(--grey-300)}
 
 /* =========================================================
-   Header / Navigation (NO JUMP)
-   brand (left) | links (center) | search (right)
+   Header / Navigation — three fixed lanes (left/center/right)
 ========================================================= */
 .stickynav{
-  position:sticky;top:0;z-index:1000;background:#fff;
-  border-bottom:1px solid var(--grey-300);box-shadow:0 3px 8px rgba(0,0,0,.04);
+  position:sticky; top:0; z-index:1000; background:#fff;
+  border-bottom:1px solid var(--grey-300); box-shadow:0 3px 8px rgba(0,0,0,.04);
 }
 
-/* FULL-WIDTH GRID: no max-width → brand hard-left */
+/* Full-width navbar so brand is HARD LEFT and search HARD RIGHT */
 .navbar{
   width:100%;
-  max-width:none;          /* << key change */
-  margin:0;
-  padding:12px 20px;
+  max-width:none;                 /* <-- stop centering at --maxw */
   display:grid;
+  grid-template-columns: max-content minmax(0,1fr) minmax(260px,420px);
   align-items:center;
-  gap:24px;
-  grid-template-columns:auto 1fr minmax(260px, 420px); /* brand | center | search */
+  column-gap:24px;
+  padding:12px 20px;
 }
 
-/* Brand: pinned to far left */
-.brand{
-  grid-column:1;
-  display:inline-flex;align-items:center;gap:10px;text-decoration:none;
-  justify-self:start;      /* << stay hard-left */
-}
+/* Brand (left) */
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;justify-self:start}
 .brand img{height:32px;width:auto;display:block}
 .brand span{font-weight:800;color:#0A3B7A;font-size:18px}
 
-/* Centered pill group */
+/* Links (center) — never overlaps left/right */
 .nav-links{
   grid-column:2;
+  min-width:0;
   display:flex;align-items:center;justify-content:center;
-  gap:16px;min-width:0;flex-wrap:wrap;padding:2px 8px;
+  gap:16px;flex-wrap:nowrap;
+  overflow:visible;               /* <-- allow dropdowns to spill */
 }
-/* keep one line on wide screens */
-@media (min-width:901px){ .nav-links{flex-wrap:nowrap;white-space:nowrap} }
+.nav-links > *{flex:0 0 auto}
 
-/* Search pinned right */
+/* Search (right) */
 .site-search{
-  grid-column:3;justify-self:end;
-  display:flex;align-items:center;
-  height:var(--control-h);
-  width:clamp(240px, 28vw, 420px);
+  grid-column:3;justify-self:end;display:flex;align-items:center;
+  height:var(--control-h);width:100%;
   border:2px solid var(--blue);border-radius:999px;overflow:hidden;background:#fff;
 }
-.site-search input[type="search"]{flex:1;border:none;outline:none;height:100%;padding:0 10px 0 8px;font-size:1rem;min-width:0}
+.site-search input[type="search"]{
+  flex:1;border:none;outline:none;height:100%;padding:0 10px 0 8px;font-size:1rem;min-width:0;
+}
 .site-search button{
   border:none;background:var(--blue);color:#fff;font-weight:700;
-  padding:0 10px;min-width:40px;height:var(--control-h);cursor:pointer;
+  padding:0 12px;min-width:46px;height:var(--control-h);cursor:pointer;
   border-radius:0 999px 999px 0;display:flex;align-items:center;gap:6px;line-height:1;
 }
 .site-search button:hover,.site-search button:focus-visible{background:var(--orange);color:#fff}
-.site-search:focus-within{box-shadow:0 0 0 2px var(--orange)}
 .fa-arrow-right{color:#fff}
 
 /* Dropdowns */
 .dropdown{position:relative;display:inline-block}
 .dropbtn{cursor:pointer}
 .dropdown-content{
-  display:none;position:absolute;top:calc(100% + 10px);left:0;z-index:1000;
+  display:none;position:absolute;top:calc(100% + 10px);left:0;z-index:2000;
   min-width:240px;background:#fff;border:1px solid var(--grey-300);
   border-radius:12px;padding:10px;box-shadow:0 10px 22px rgba(0,0,0,.12);
 }
 .dropdown.open .dropdown-content{display:block}
 .dropdown-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 
-/* Reserve space for role-gated items to avoid layout jumps */
-.role-gate{visibility:hidden}
-.role-gate.is-on{visibility:visible}
+/* Role-gated menus */
+.role-gate{display:none}
+.role-gate.is-on{display:inline-block}
 
-/* Responsive: stack neatly on small screens */
+/* -------------------- Responsive header -------------------- */
 @media (max-width:900px){
-  .navbar{grid-template-columns:1fr;gap:10px}
-  .nav-links{order:2;justify-content:center;flex-wrap:wrap;white-space:normal}
+  .navbar{grid-template-columns:1fr;row-gap:10px}
+  .brand{justify-self:start}
+  .nav-links{order:2;justify-content:center;flex-wrap:wrap}
   .site-search{order:3;justify-self:stretch;width:100%}
 }
 
@@ -142,13 +148,19 @@ button:focus-visible,.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--
 ========================================================= */
 .hero-box{position:relative;width:100%;height:clamp(260px,28vw,440px);overflow:hidden;background:transparent}
 .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center}
-header img,.header-img,.ebheader-img,img.ebheader,img[src*="ebheader.svg"]{max-width:100%;height:auto;display:block;background:transparent !important;box-shadow:0 4px 12px rgba(0,0,0,.13),0 1px 4px rgba(0,0,0,.10);margin-bottom:-2px}
+header img,.header-img,.ebheader-img,img.ebheader,img[src*="ebheader.svg"]{
+  max-width:100%;height:auto;display:block;background:transparent !important;
+  box-shadow:0 4px 12px rgba(0,0,0,.13),0 1px 4px rgba(0,0,0,.10);margin-bottom:-2px;
+}
 
 /* =========================================================
    Forms
 ========================================================= */
 form label{display:grid;gap:6px;font-weight:600}
-input,select,textarea{width:100%;padding:10px 12px;border:2px solid var(--blue);border-radius:12px;font:inherit;line-height:1.2}
+input,select,textarea{
+  width:100%;padding:10px 12px;border:2px solid var(--blue);
+  border-radius:12px;font:inherit;line-height:1.2;
+}
 textarea{resize:vertical}
 input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px var(--orange)}
 
@@ -161,7 +173,7 @@ input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px var(--
 .table .num{text-align:right}
 
 /* =========================================================
-   Footer (you still have footer.css for details)
+   Footer (page has separate footer.css; base defaults here)
 ========================================================= */
 .site-footer{background:#0e3a66;color:#fff;border-top:4px solid var(--orange);flex-shrink:0}
 .site-footer .footer-grid{padding:28px 20px}
@@ -174,7 +186,11 @@ input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px var(--
 ========================================================= */
 .mt-sm{margin-top:8px}.mt-md{margin-top:16px}.mt-lg{margin-top:24px}
 .muted{color:#666}
-@media (max-width:900px){ .container{padding:16px 12px} }
+
+/* -------------------- Mobile layout polish -------------------- */
+@media (max-width:900px){
+  .container{padding:16px 12px}
+}
 @media (max-width:700px){
   .section{padding:18px 0}
   .grid-2{grid-template-columns:1fr;gap:14px}

@@ -54,7 +54,7 @@ function renderHeader($title = 'Elderberry Place', $showHero = false){
       </a>
 
       <!-- Services (always available) -->
-      <div class="dropdown">
+      <!-- <div class="dropdown">
         <button type="button" class="btn btn--secondary dropbtn">
           <i class="fa-solid fa-user-nurse"></i> Services ▾
         </button>
@@ -65,7 +65,7 @@ function renderHeader($title = 'Elderberry Place', $showHero = false){
             <li><a class="btn btn--secondary" href="<?php echo $BASE; ?>/homecare.php">Home Care</a></li>
           </ul>
         </div>
-      </div>
+      </div> -->
 
       <a class="btn btn--secondary" href="<?php echo $BASE; ?>/contact.php">
         <i class="fa-regular fa-envelope"></i> Contact

@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/db_api.php';
  * GET /v1/residents/{id}/prescriptions
  */
 function Rx_list_by_resident($residentId) {
-  require_staff_api();
+        require_role_api(array('ADMIN', 'STAFF'));
   $pdo = api_db();
 
   $sql = "SELECT rx.*, 
@@ -36,7 +36,7 @@ function Rx_list_by_resident($residentId) {
  * POST /v1/residents/{id}/prescriptions
  */
 function Rx_create($residentId) {
-  require_staff_api();
+        require_role_api(array('ADMIN', 'STAFF'));
   $b = read_json();
 
   // basic validation
@@ -93,6 +93,24 @@ function Rx_create($residentId) {
     return json_err('SERVER_ERROR', 'Failed to create prescription', 500, array('error' => $e->getMessage()));
   }
 }
+
+/**
+ * DELETE /v1/prescriptions/{id}
+ */
+function Rx_delete($id) {
+    require_role_api(array('ADMIN', 'STAFF'));
+  $pdo = api_db();
+
+  $st = $pdo->prepare("DELETE FROM prescriptions WHERE id=?");
+  $st->execute(array((int)$id));
+
+  if ($st->rowCount() === 0) {
+    return json_err('NOT_FOUND','Prescription not found',404,null);
+  }
+  // med_schedule rows cascade via FK
+  json_ok(array('id'=>(int)$id));
+}
+
 
 /**
  * Helper: normalize time strings to HH:mm and drop invalid ones

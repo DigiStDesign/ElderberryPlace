@@ -5,23 +5,63 @@ require_once __DIR__ . '/../lib/auth_api.php';
 require_once __DIR__ . '/../lib/db_api.php';
 
 /** GET /v1/residents */
+/** GET /v1/residents?q=&page=1&limit=50 */
+/** GET /v1/residents?q=&page=1&limit=50 */
 function Residents_list() {
-    require_admin_api();
-    $pdo = api_db();
+    // Allow STAFF and ADMIN to read residents
+         require_role_api(array('ADMIN', 'STAFF'));
+
+    $pdo   = api_db();
+    $q     = isset($_GET['q']) ? trim($_GET['q']) : '';
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+    if ($limit < 1) $limit = 1; if ($limit > 100) $limit = 100;
+    $page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    if ($page < 1) $page = 1;
+    $offset = ($page - 1) * $limit;
+
+    $where = array("u.role = 'RESIDENT'");
+    $args  = array();
+
+    if ($q !== '') {
+        // tokenized search across name/username/email
+        $parts = preg_split('/\s+/', $q);
+        foreach ($parts as $p) {
+            if ($p === '') continue;
+            $where[] = "(u.full_name LIKE ? OR u.username LIKE ? OR u.email LIKE ?)";
+            $like = '%'.$p.'%';
+            $args[] = $like; $args[] = $like; $args[] = $like;
+        }
+    }
+
+    $sqlWhere = $where ? (' WHERE '.implode(' AND ', $where)) : '';
+
+    // total for paging
+    $cnt = $pdo->prepare('SELECT COUNT(*) FROM users u LEFT JOIN resident_profiles rp ON rp.user_id=u.id'.$sqlWhere);
+    $cnt->execute($args);
+    $total = (int)$cnt->fetchColumn();
+
     $sql = "SELECT
-                u.id, u.username, u.full_name, u.email, u.is_active,
-                rp.room_number, rp.dob
+              u.id, u.username, u.full_name, u.email, u.is_active,
+              rp.room_number, rp.dob
             FROM users u
             LEFT JOIN resident_profiles rp ON rp.user_id = u.id
-            WHERE u.role = 'RESIDENT'
-            ORDER BY u.full_name";
-    $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+            ".$sqlWhere."
+            ORDER BY u.full_name ASC
+            LIMIT ".$limit." OFFSET ".$offset;
+
+    $st = $pdo->prepare($sql);
+    $st->execute($args);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+
     foreach ($rows as &$r) {
         $r['id'] = (int)$r['id'];
         $r['is_active'] = (int)$r['is_active'];
     }
-    json_ok(array('items' => $rows));
+
+    json_ok(array('items' => $rows, 'page'=>$page, 'limit'=>$limit, 'total'=>$total));
 }
+
+
 
 /** POST /v1/residents */
 function Residents_create() {

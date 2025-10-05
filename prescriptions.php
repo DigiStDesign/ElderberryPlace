@@ -34,6 +34,7 @@ renderHeader('Prescriptions');
               <th>Start</th>
               <th>End</th>
               <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -49,8 +50,11 @@ renderHeader('Prescriptions');
               <td>{{ r.start_date }}</td>
               <td>{{ r.end_date || '' }}</td>
               <td>{{ r.status }}</td>
+              <td>
+                <button class="btn btn--muted" @click="del(r)">Cancel</button>
+              </td>
             </tr>
-            <tr v-if="rows.length===0"><td colspan="8" class="muted">No prescriptions.</td></tr>
+            <tr v-if="rows.length===0"><td colspan="9" class="muted">No prescriptions.</td></tr>
           </tbody>
         </table>
       </div>
@@ -84,8 +88,9 @@ renderHeader('Prescriptions');
           <input v-model.trim="form.frequency" placeholder="Frequency (e.g., daily)" required>
           <label><input type="checkbox" v-model="form.prn"> PRN</label>
 
-          <input v-model.trim="form.start_date" placeholder="Start date YYYY-MM-DD" required>
-          <input v-model.trim="form.end_date" placeholder="End date (optional) YYYY-MM-DD">
+          <!-- switched to native date pickers -->
+          <input v-model="form.start_date" type="date" required>
+          <input v-model="form.end_date"   type="date" placeholder="End date (optional)">
 
           <input v-model.trim="timesText" placeholder="Times (comma HH:mm, e.g., 08:00,20:00)" style="grid-column:1 / -1">
 
@@ -108,6 +113,7 @@ renderHeader('Prescriptions');
 <script src="assets/app.js"></script>
 <script>
 function getQS(name){ var m=location.search.match(new RegExp('[?&]'+name+'=([^&]+)')); return m?decodeURIComponent(m[1]):''; }
+function today(){ var d=new Date(); var m=('0'+(d.getMonth()+1)).slice(-2), day=('0'+d.getDate()).slice(-2); return d.getFullYear()+'-'+m+'-'+day; }
 
 Vue.createApp({
   data(){
@@ -115,18 +121,19 @@ Vue.createApp({
       residents:[], residentId: Number(getQS('resident_id'))||null,
       rows:[], err:'', msg:'',
       medSearch:'', medResults:[],
-      form:{ medication_id:null, dose:'', route:'', prn:false, frequency:'', start_date:'', end_date:'', max_daily_dose:'', instructions:'', prescriber:'' },
+      form:{ medication_id:null, dose:'', route:'', prn:false, frequency:'', start_date:today(), end_date:'', max_daily_dose:'', instructions:'', prescriber:'' },
       timesText:''
     };
   },
   computed:{
     pickedMedLabel(){
-      var m = (this.medResults.find(x=>x.id===this.form.medication_id)) || null;
-      return m ? (m.generic_name+' • '+m.form+' '+m.strength) : ('#'+this.form.medication_id);
+      var id=this.form.medication_id, pick=null;
+      for (var i=0;i<this.medResults.length;i++){ if(this.medResults[i].id===id){ pick=this.medResults[i]; break; } }
+      return pick ? (pick.generic_name+' • '+pick.form+' '+pick.strength) : (id?('#'+id):'');
     }
   },
   watch:{
-    medSearch(val){
+    medSearch: function(val){
       var self=this;
       if (!val || val.length<2){ self.medResults=[]; return; }
       apiGet('/medications',{q:val, limit:25}).then(function(r){
@@ -139,7 +146,7 @@ Vue.createApp({
     async loadResidents(){
       var r=await apiGet('/residents'); var d=r.data&&r.data.data?r.data.data:r.data;
       this.residents = d.items?d.items:d;
-      if(!this.residentId && this.residents.length) this.residentId=this.residents[0].id, this.reload();
+      if(!this.residentId && this.residents.length){ this.residentId=this.residents[0].id; this.reload(); }
     },
     async loadRx(){
       try{
@@ -164,9 +171,16 @@ Vue.createApp({
         };
         await apiPost('/residents/'+this.residentId+'/prescriptions', body);
         this.msg='Created.';
-        this.form={ medication_id:null, dose:'', route:'', prn:false, frequency:'', start_date:'', end_date:'', max_daily_dose:'', instructions:'', prescriber:'' };
+        this.form={ medication_id:null, dose:'', route:'', prn:false, frequency:'', start_date:today(), end_date:'', max_daily_dose:'', instructions:'', prescriber:'' };
         this.timesText=''; await this.loadRx();
       }catch(e){ this.err=this.msgFrom(e); }
+    },
+    async del(row){
+      if(!confirm('Cancel/delete this prescription?')) return;
+      try{
+        await apiDelete('/prescriptions/'+row.id);
+        await this.loadRx();
+      }catch(e){ alert(this.msgFrom(e)); }
     },
     msgFrom(e){
       return (e&&e.response&&e.response.data&&e.response.data.error&&e.response.data.error.message)?e.response.data.error.message:(e&&e.message?e.message:'Error');

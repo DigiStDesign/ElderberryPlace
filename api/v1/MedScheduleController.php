@@ -9,7 +9,7 @@ require_once __DIR__ . '/../lib/db_api.php';
  * GET /v1/residents/{id}/med-due?from=YYYY-MM-DD HH:MM&to=YYYY-MM-DD HH:MM
  */
 function Med_due_for_resident($residentId) { // drop type hints if older PHP
-  require_staff_api();
+        require_role_api(array('ADMIN', 'STAFF'));
   $pdo = api_db();
 
   $from = isset($_GET['from']) ? $_GET['from'] : date('Y-m-d 00:00:00');
@@ -46,7 +46,7 @@ function Med_due_for_resident($residentId) { // drop type hints if older PHP
  * Body: { "outcome":"given|refused|withheld|missed", "dose_given":"1 tab", "notes":"", "staff_user_id": 2, "witness_user_id": null }
  */
 function Med_administer($scheduleId) { // drop type hint if older PHP
-  require_staff_api();
+        require_role_api(array('ADMIN', 'STAFF'));
   $b = read_json();
 
   // Normalize + validate
