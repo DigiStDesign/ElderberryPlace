@@ -29,7 +29,7 @@
 </script>
 <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
-<script src="/assets/app.js"></script>
+<script src="assets/app.js"></script>
 <script>
 Vue.createApp({
   data(){ return { username:'', password:'', err:'' }; },

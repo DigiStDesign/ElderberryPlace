@@ -24,7 +24,9 @@ function user_has_role($role) {
 
 function require_login() {
     if (!current_user()) {
-        header('Location: /login.php');
+        $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+        if ($basePath === '/' || $basePath === '\\') $basePath = '';
+        header('Location: ' . $basePath . '/login.php');
         exit;
     }
 }

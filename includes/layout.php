@@ -47,7 +47,7 @@ function renderNav($role = 'GUEST', $user = null)
     $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
     if ($basePath === '/' || $basePath === '\\') $basePath = '';
     $BASE = $origin . $basePath;          
-    $API  = $origin . '/api';             // absolute API base
+    $API  = $BASE . '/api';             // absolute API base
 
     $current = basename($_SERVER["PHP_SELF"]);
     $phpName = $user ? htmlspecialchars($user['full_name']) : '';
@@ -65,6 +65,7 @@ function renderNav($role = 'GUEST', $user = null)
     echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/residents.php',          'Residents',                 $current) . '</li>';
     echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/visitors.php',           'Visitors',                  $current) . '</li>';
     echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/relationships.php',      'Relationships',             $current) . '</li>';
+    echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/billing.php',             'Billing',                  $current) . '</li>';
     echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/services.php',           'Services',                  $current) . '</li>';
     echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/sessions.php',           'Service Sessions',          $current) . '</li>';
     echo '<li data-role-only="ADMIN" style="display:none;">' . linkHtml($BASE . '/manage_categories.php',  'Manage Service Categories', $current) . '</li>';
