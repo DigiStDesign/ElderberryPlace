@@ -1,3 +1,4 @@
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^api/v1/?(.*)$ api/index.php/$1 [QSA,PT,L]
+RewriteRule ^favicon\.ico$ assets/ebfavicon.png [L]

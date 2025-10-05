@@ -1,0 +1,184 @@
+/* =========================================================
+   Elderberry Place – Global Styles
+   Clean header: brand (left) | links (center) | search (right)
+========================================================= */
+
+/* -------------------- Variables -------------------- */
+:root{
+  --blue:#004AAD;
+  --green:#00BF63;
+  --orange:#FF751F;
+  --white:#FFFFFF;
+  --black:#000000;
+  --grey-100:#F7F7F7;
+  --grey-300:#D9E1EC;
+  --grey-600:#E5E7EB;
+  --maxw:1140px;
+  --radius:12px;
+  --control-h:40px;
+}
+
+/* -------------------- Base & Type -------------------- */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;overflow-x:hidden;height:100%}
+h1,h2{overflow-wrap:anywhere}
+h1{font-size:clamp(1.6rem,2.5vw,2.2rem);margin:0 0 12px}
+h2{font-size:clamp(1.3rem,2vw,1.6rem);margin:18px 0 10px}
+h3{font-size:1.1rem;margin:14px 0 8px}
+p{margin:0 0 1rem}
+.lead{color:#444;margin:4px 0 16px}
+
+/* -------------------- Layout utils -------------------- */
+.container{max-width:var(--maxw);margin:0 auto;padding:24px 20px}
+.section{padding:32px 0}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.card{background:#fff;border:1px solid var(--grey-600);border-radius:16px;padding:20px;box-shadow:0 4px 10px rgba(0,0,0,.05)}
+
+/* -------------------- Accessibility -------------------- */
+.skip-link{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip-link:focus{position:fixed;left:12px;top:12px;background:var(--blue);color:#fff;padding:8px 12px;border-radius:6px;z-index:2000}
+
+/* -------------------- Buttons -------------------- */
+.btn{
+  --btn-h:var(--control-h);
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:var(--btn-h);height:var(--btn-h);
+  min-width:120px;padding:0 16px;border-radius:999px !important;
+  font-weight:700;line-height:1.2;text-decoration:none;cursor:pointer;
+  user-select:none;border:2px solid transparent;
+  transition:background-color .2s,color .2s,box-shadow .15s,transform .02s;
+}
+.btn i{margin-right:.35rem;font-size:.9em}
+button:hover,.btn:hover{filter:brightness(.95)}
+button:focus-visible,.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--orange)}
+.btn:active{transform:translateY(1px)}
+.btn--primary{background:var(--blue);color:#fff;border:2px solid var(--blue)}
+.btn--primary:hover{background:#fff;color:var(--blue)}
+.btn--secondary{background:#fff;color:var(--blue);border:2px solid var(--blue)}
+.btn--secondary:hover{background:var(--blue);color:#fff}
+.btn--muted{background:#f4f6fa;color:#213547;border:2px solid var(--grey-300)}
+
+/* =========================================================
+   Header / Navigation (NO JUMP)
+   brand (left) | links (center) | search (right)
+========================================================= */
+.stickynav{
+  position:sticky;top:0;z-index:1000;background:#fff;
+  border-bottom:1px solid var(--grey-300);box-shadow:0 3px 8px rgba(0,0,0,.04);
+}
+
+/* FULL-WIDTH GRID: no max-width → brand hard-left */
+.navbar{
+  width:100%;
+  max-width:none;          /* << key change */
+  margin:0;
+  padding:12px 20px;
+  display:grid;
+  align-items:center;
+  gap:24px;
+  grid-template-columns:auto 1fr minmax(260px, 420px); /* brand | center | search */
+}
+
+/* Brand: pinned to far left */
+.brand{
+  grid-column:1;
+  display:inline-flex;align-items:center;gap:10px;text-decoration:none;
+  justify-self:start;      /* << stay hard-left */
+}
+.brand img{height:32px;width:auto;display:block}
+.brand span{font-weight:800;color:#0A3B7A;font-size:18px}
+
+/* Centered pill group */
+.nav-links{
+  grid-column:2;
+  display:flex;align-items:center;justify-content:center;
+  gap:16px;min-width:0;flex-wrap:wrap;padding:2px 8px;
+}
+/* keep one line on wide screens */
+@media (min-width:901px){ .nav-links{flex-wrap:nowrap;white-space:nowrap} }
+
+/* Search pinned right */
+.site-search{
+  grid-column:3;justify-self:end;
+  display:flex;align-items:center;
+  height:var(--control-h);
+  width:clamp(240px, 28vw, 420px);
+  border:2px solid var(--blue);border-radius:999px;overflow:hidden;background:#fff;
+}
+.site-search input[type="search"]{flex:1;border:none;outline:none;height:100%;padding:0 10px 0 8px;font-size:1rem;min-width:0}
+.site-search button{
+  border:none;background:var(--blue);color:#fff;font-weight:700;
+  padding:0 10px;min-width:40px;height:var(--control-h);cursor:pointer;
+  border-radius:0 999px 999px 0;display:flex;align-items:center;gap:6px;line-height:1;
+}
+.site-search button:hover,.site-search button:focus-visible{background:var(--orange);color:#fff}
+.site-search:focus-within{box-shadow:0 0 0 2px var(--orange)}
+.fa-arrow-right{color:#fff}
+
+/* Dropdowns */
+.dropdown{position:relative;display:inline-block}
+.dropbtn{cursor:pointer}
+.dropdown-content{
+  display:none;position:absolute;top:calc(100% + 10px);left:0;z-index:1000;
+  min-width:240px;background:#fff;border:1px solid var(--grey-300);
+  border-radius:12px;padding:10px;box-shadow:0 10px 22px rgba(0,0,0,.12);
+}
+.dropdown.open .dropdown-content{display:block}
+.dropdown-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+
+/* Reserve space for role-gated items to avoid layout jumps */
+.role-gate{visibility:hidden}
+.role-gate.is-on{visibility:visible}
+
+/* Responsive: stack neatly on small screens */
+@media (max-width:900px){
+  .navbar{grid-template-columns:1fr;gap:10px}
+  .nav-links{order:2;justify-content:center;flex-wrap:wrap;white-space:normal}
+  .site-search{order:3;justify-self:stretch;width:100%}
+}
+
+/* =========================================================
+   Hero
+========================================================= */
+.hero-box{position:relative;width:100%;height:clamp(260px,28vw,440px);overflow:hidden;background:transparent}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center}
+header img,.header-img,.ebheader-img,img.ebheader,img[src*="ebheader.svg"]{max-width:100%;height:auto;display:block;background:transparent !important;box-shadow:0 4px 12px rgba(0,0,0,.13),0 1px 4px rgba(0,0,0,.10);margin-bottom:-2px}
+
+/* =========================================================
+   Forms
+========================================================= */
+form label{display:grid;gap:6px;font-weight:600}
+input,select,textarea{width:100%;padding:10px 12px;border:2px solid var(--blue);border-radius:12px;font:inherit;line-height:1.2}
+textarea{resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px var(--orange)}
+
+/* =========================================================
+   Tables
+========================================================= */
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px 12px;border-bottom:1px solid var(--grey-600)}
+.table th{text-align:left;font-weight:700}
+.table .num{text-align:right}
+
+/* =========================================================
+   Footer (you still have footer.css for details)
+========================================================= */
+.site-footer{background:#0e3a66;color:#fff;border-top:4px solid var(--orange);flex-shrink:0}
+.site-footer .footer-grid{padding:28px 20px}
+.site-footer a{color:#fff;text-decoration:none}
+.site-footer a:hover{color:var(--orange)}
+.footer-bottom{background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.35)}
+
+/* =========================================================
+   Utilities
+========================================================= */
+.mt-sm{margin-top:8px}.mt-md{margin-top:16px}.mt-lg{margin-top:24px}
+.muted{color:#666}
+@media (max-width:900px){ .container{padding:16px 12px} }
+@media (max-width:700px){
+  .section{padding:18px 0}
+  .grid-2{grid-template-columns:1fr;gap:14px}
+  .site-footer .footer-grid{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .site-footer .footer-grid>*{margin-left:auto;margin-right:auto}
+  .footer-bottom .container{padding-left:12px;padding-right:12px}
+}
